@@ -1,0 +1,29 @@
+/*
+ * Design tokens for the EKAM Yoga design language.
+ * Source of truth: the original homepage (home page/src/App.tsx globalStyles).
+ * Both the public site and the dashboard must consume colors from here —
+ * never hardcode hex values in feature code.
+ */
+@theme {
+  --color-sand: #F5EFE5;
+  --color-beige: #E8DDCC;
+  --color-gold: #D8B46A;
+  --color-gold-dark: #B89445;
+  --color-dark: #2B241E;
+  --color-brown: #786A58;
+  --color-cream: #FFFFFF;
+
+  --font-serif: 'Playfair Display', serif;
+  --font-sans: 'Manrope', sans-serif;
+}
+
+:root {
+  /* Raw CSS variables retained for non-Tailwind contexts (inline styles, animation libs). */
+  --sand: #F5EFE5;
+  --beige: #E8DDCC;
+  --gold: #D8B46A;
+  --gold-dark: #B89445;
+  --dark: #2B241E;
+  --brown: #786A58;
+  --cream: #FFFFFF;
+}

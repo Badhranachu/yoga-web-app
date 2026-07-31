@@ -1,0 +1,26 @@
+import { LayoutDashboard, CalendarDays, Users, UserSquare2, Ticket, CreditCard } from 'lucide-react';
+import { DashboardLayout } from '@/shared/layout/DashboardLayout';
+import { useAuth } from '@/features/auth/hooks/useAuth';
+import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
+
+const adminNavItems: SidebarNavItem[] = [
+  { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/dashboard/classes', label: 'Classes', icon: CalendarDays },
+  { to: '/dashboard/members', label: 'Members', icon: Users },
+  { to: '/dashboard/trainers', label: 'Trainers', icon: UserSquare2 },
+  { to: '/dashboard/bookings', label: 'Bookings', icon: Ticket },
+  { to: '/dashboard/payments', label: 'Payments', icon: CreditCard },
+];
+
+// Admin-role dashboard shell: full studio-management navigation.
+export const AdminLayout = () => {
+  const { user, logout } = useAuth();
+
+  return (
+    <DashboardLayout
+      navItems={adminNavItems}
+      sidebarEyebrow="Studio Dashboard"
+      topbar={{ title: 'Dashboard', userLabel: user?.full_name || user?.email, onLogout: logout }}
+    />
+  );
+};
