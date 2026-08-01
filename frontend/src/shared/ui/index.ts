@@ -4,3 +4,4 @@ export * from './TextField';
 export * from './FormFeedback';
 export * from './Toggle';
 export * from './icons/SocialIcons';
+export * from './icons/socialLinks';

@@ -18,7 +18,7 @@ export const DashboardLayout = ({ navItems, sidebarEyebrow, topbar }: DashboardL
     <DashboardSidebar navItems={navItems} eyebrow={sidebarEyebrow} />
     <div className="flex-1 flex flex-col">
       <DashboardTopbar {...topbar} />
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 md:p-8">
         <Outlet />
       </main>
     </div>

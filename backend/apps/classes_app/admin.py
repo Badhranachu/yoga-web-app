@@ -20,6 +20,16 @@ class SlotAdmin(admin.ModelAdmin):
     list_filter = ['is_booked', 'date']
     date_hierarchy = 'date'
     ordering = ['date', 'start_time']
+    readonly_fields = [field.name for field in Slot._meta.fields]
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
 
     @admin.display(description='Availability')
     def availability_label(self, obj):

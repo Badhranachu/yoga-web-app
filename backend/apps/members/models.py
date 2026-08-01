@@ -1,3 +1,6 @@
-from django.db import models
+"""Member-domain extension point.
 
-# Create your models here.
+The authenticated account model remains the source of truth for members;
+member reports use ``accounts.User`` directly until member-specific fields are
+required.
+"""

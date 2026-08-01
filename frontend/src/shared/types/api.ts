@@ -9,8 +9,9 @@ export type ApiSuccess<T> = {
   message: string;
 };
 
-export type ApiError = {
+export type ApiError<TData = unknown> = {
   success: false;
   errors: Record<string, string[]> | string;
   code: number;
+  data?: TData;
 };

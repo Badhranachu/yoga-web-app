@@ -1,6 +1,6 @@
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
-import { socialLinks } from '@/shared/ui/icons/SocialIcons';
+import { socialLinks } from '@/shared/ui/icons/socialLinks';
 
 const footerLinkColumns = [
   {

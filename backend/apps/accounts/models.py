@@ -49,6 +49,9 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     class Meta:
         db_table = 'accounts_user'
         ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['is_active', 'created_at'], name='idx_user_active_date'),
+        ]
 
     def __str__(self):
         return self.email

@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.mail import send_mail
+from django.db import transaction
 
 from .models import PasswordResetToken, User
 
@@ -32,11 +33,12 @@ def issue_password_reset_token(email: str) -> None:
     )
 
 
+@transaction.atomic
 def reset_password_with_token(token: str, new_password: str) -> bool:
     """Consumes a reset token and sets the new password. Returns False if the
     token is missing/expired/already used, True on success."""
     try:
-        reset_token = PasswordResetToken.objects.select_related('user').get(token=token)
+        reset_token = PasswordResetToken.objects.select_for_update().select_related('user').get(token=token)
     except PasswordResetToken.DoesNotExist:
         return False
 

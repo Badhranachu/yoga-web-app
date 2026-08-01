@@ -5,12 +5,11 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListAPIView, ListCreateAPIView, RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.core.models import StudioSetting
 from apps.core.permissions import IsAdminRole
-from apps.core.responses import success_response
+from apps.core.responses import error_response, success_response
 from apps.core.settings_keys import SLOT_GENERATION_HORIZON_DAYS
 
 from .models import Leave, Slot, TimetableConfig
@@ -181,13 +180,9 @@ class LeaveDetailView(APIView):
         today = timezone.localdate()
 
         if leave.end_date < today:
-            return Response(
-                {
-                    'success': False,
-                    'errors': 'Past leave is kept as permanent history and cannot be deleted.',
-                    'code': status.HTTP_400_BAD_REQUEST,
-                },
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                'Past leave is kept as permanent history and cannot be deleted.',
+                code=status.HTTP_400_BAD_REQUEST,
             )
 
         result = release_leave(leave)

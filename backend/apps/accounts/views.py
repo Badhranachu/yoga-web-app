@@ -6,7 +6,7 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from apps.core.responses import success_response
+from apps.core.responses import error_response, success_response
 
 from .serializers import (
     ChangePasswordSerializer,
@@ -64,7 +64,7 @@ class LogoutView(APIView):
     def post(self, request):
         refresh_token = request.data.get('refresh')
         if not refresh_token:
-            return success_response(message='Refresh token is required.', status=status.HTTP_400_BAD_REQUEST)
+            return error_response('Refresh token is required.', code=status.HTTP_400_BAD_REQUEST)
 
         try:
             RefreshToken(refresh_token).blacklist()
@@ -130,8 +130,8 @@ class ResetPasswordView(APIView):
             serializer.validated_data['new_password'],
         )
         if not ok:
-            return success_response(
-                message='This reset link is invalid or has expired.',
-                status=status.HTTP_400_BAD_REQUEST,
+            return error_response(
+                'This reset link is invalid or has expired.',
+                code=status.HTTP_400_BAD_REQUEST,
             )
         return success_response(message='Password reset successfully.')

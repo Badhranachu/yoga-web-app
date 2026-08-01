@@ -1,3 +1,1 @@
-from django.db import models
-
-# Create your models here.
+"""Trainer-domain extension point for the single-instructor studio model."""

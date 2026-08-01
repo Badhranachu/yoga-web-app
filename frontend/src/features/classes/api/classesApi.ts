@@ -1,6 +1,8 @@
 import { apiClient } from '@/shared/lib/apiClient';
 import type { ApiSuccess } from '@/shared/types/api';
 import type {
+  CreateLeavePayload,
+  Leave,
   PaginatedResponse,
   ResyncResult,
   Slot,
@@ -13,6 +15,10 @@ import type {
 export type SlotListParams = {
   date_from?: string;
   date_to?: string;
+  page?: number;
+};
+
+export type LeaveListParams = {
   page?: number;
 };
 
@@ -51,5 +57,19 @@ export const classesApi = {
   getSlots: async (params: SlotListParams = {}): Promise<PaginatedResponse<Slot>> => {
     const { data } = await apiClient.get<PaginatedResponse<Slot>>('/classes/slots/', { params });
     return data;
+  },
+
+  getLeaves: async (params: LeaveListParams = {}): Promise<PaginatedResponse<Leave>> => {
+    const { data } = await apiClient.get<PaginatedResponse<Leave>>('/classes/leaves/', { params });
+    return data;
+  },
+
+  addLeave: async (payload: CreateLeavePayload): Promise<Leave> => {
+    const { data } = await apiClient.post<ApiSuccess<Leave>>('/classes/leaves/', payload);
+    return data.data;
+  },
+
+  deleteLeave: async (id: number): Promise<void> => {
+    await apiClient.delete(`/classes/leaves/${id}/`);
   },
 };

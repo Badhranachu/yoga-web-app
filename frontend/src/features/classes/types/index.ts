@@ -25,6 +25,8 @@ export type TimetableConfigUpdatePayload = Partial<
   Pick<TimetableConfig, 'is_open' | 'start_time' | 'end_time' | 'slot_duration_minutes'>
 >;
 
+export type SlotAvailability = 'available' | 'unavailable' | 'booked' | 'leave_conflict';
+
 export type Slot = {
   id: number;
   date: string; // "YYYY-MM-DD"
@@ -33,6 +35,7 @@ export type Slot = {
   weekday: Weekday;
   weekday_display: string;
   is_booked: boolean;
+  availability: SlotAvailability;
 };
 
 export type PaginatedResponse<T> = {
@@ -49,4 +52,20 @@ export type SlotGenerationSettings = {
 export type ResyncResult = {
   deleted: number;
   created: number;
+};
+
+export type Leave = {
+  id: number;
+  start_date: string; // "YYYY-MM-DD"
+  end_date: string;
+  reason: string;
+  created_by_email: string | null;
+  is_past: boolean;
+  created_at: string;
+};
+
+export type CreateLeavePayload = {
+  start_date: string;
+  end_date: string;
+  reason?: string;
 };

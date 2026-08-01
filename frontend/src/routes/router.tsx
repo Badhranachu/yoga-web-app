@@ -13,10 +13,13 @@ import { ClassesPage } from '@/features/classes/routes/ClassesPage';
 import { MembersPage } from '@/features/members/routes/MembersPage';
 import { TrainersPage } from '@/features/trainers/routes/TrainersPage';
 import { BookingsPage } from '@/features/bookings/routes/BookingsPage';
+import { BookSlotPage } from '@/features/bookings/routes/BookSlotPage';
 import { PaymentsPage } from '@/features/payments/routes/PaymentsPage';
+import { ReportsPage } from '@/features/reports/routes/ReportsPage';
 import { UserLayout } from '@/features/account/components/UserLayout';
 import { AccountOverviewPage } from '@/features/account/routes/AccountOverviewPage';
 import { ProfilePage } from '@/features/account/routes/ProfilePage';
+import { SubscriptionPage } from '@/features/account/routes/SubscriptionPage';
 
 // Central route tree. Feature modules own their page components; this file
 // only wires them to URLs, layout shells, and auth guards.
@@ -45,6 +48,7 @@ export const router = createBrowserRouter([
               { path: 'trainers', element: <TrainersPage /> },
               { path: 'bookings', element: <BookingsPage /> },
               { path: 'payments', element: <PaymentsPage /> },
+              { path: 'reports', element: <ReportsPage /> },
             ],
           },
         ],
@@ -57,6 +61,8 @@ export const router = createBrowserRouter([
             element: <UserLayout />,
             children: [
               { index: true, element: <AccountOverviewPage /> },
+              { path: 'book', element: <BookSlotPage /> },
+              { path: 'subscription', element: <SubscriptionPage /> },
               { path: 'profile', element: <ProfilePage /> },
             ],
           },

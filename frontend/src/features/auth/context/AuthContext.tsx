@@ -1,20 +1,9 @@
-import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { authApi } from '../api/authApi';
 import { setupAuthInterceptors } from '../api/setupAuthInterceptors';
 import { tokenStorage } from '../lib/tokenStorage';
 import type { LoginPayload, RegisterPayload, User } from '../types';
-
-export type AuthContextValue = {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (payload: LoginPayload) => Promise<User>;
-  register: (payload: RegisterPayload) => Promise<void>;
-  logout: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
-};
-
-export const AuthContext = createContext<AuthContextValue | null>(null);
+import { AuthContext, type AuthContextValue } from './AuthContextValue';
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);

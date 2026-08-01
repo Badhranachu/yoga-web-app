@@ -11,7 +11,7 @@ from decouple import Csv, config
 # config/settings/base.py -> config/settings -> config -> backend
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
-SECRET_KEY = config('DJANGO_SECRET_KEY', default='django-insecure-change-me-in-env')
+SECRET_KEY = config('DJANGO_SECRET_KEY')
 
 DEBUG = config('DJANGO_DEBUG', default=False, cast=bool)
 
@@ -45,6 +45,9 @@ LOCAL_APPS = [
     'apps.trainers',
     'apps.bookings',
     'apps.payments',
+    'apps.notifications',
+    'apps.dashboard',
+    'apps.reports',
 ]
 
 INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -110,7 +113,9 @@ AUTH_PASSWORD_VALIDATORS = [
 
 # Internationalization
 LANGUAGE_CODE = 'en-us'
-TIME_ZONE = 'UTC'
+# Studio/business dates (slot generation, leaves, booking cutoffs, and
+# subscription cycles) are evaluated in the studio's local timezone.
+TIME_ZONE = 'Asia/Kolkata'
 USE_I18N = True
 USE_TZ = True
 
@@ -133,6 +138,14 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
     'EXCEPTION_HANDLER': 'apps.core.exceptions.api_exception_handler',
+    'DEFAULT_THROTTLE_CLASSES': (
+        'rest_framework.throttling.AnonRateThrottle',
+        'rest_framework.throttling.UserRateThrottle',
+    ),
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '30/minute',
+        'user': '300/minute',
+    },
 }
 
 # Simple JWT
@@ -155,6 +168,10 @@ CORS_ALLOWED_ORIGINS = config(
 # (e.g. the password reset link). Configurable per environment.
 FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 
+# Development/test payment ledger switch. Production settings deliberately
+# disable this until a real gateway adapter is integrated.
+PAYMENT_PROCESSING_ENABLED = config('PAYMENT_PROCESSING_ENABLED', default=True, cast=bool)
+
 # Password reset link validity window, consumed by accounts.models.PasswordResetToken.
 PASSWORD_RESET_TOKEN_TTL_HOURS = config('PASSWORD_RESET_TOKEN_TTL_HOURS', default=1, cast=int)
 
@@ -167,3 +184,13 @@ EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {'console': {'class': 'logging.StreamHandler'}},
+    'loggers': {
+        'django.request': {'handlers': ['console'], 'level': 'ERROR', 'propagate': False},
+        'apps': {'handlers': ['console'], 'level': 'INFO', 'propagate': False},
+    },
+}

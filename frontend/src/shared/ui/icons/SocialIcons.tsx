@@ -28,10 +28,3 @@ export const WhatsAppIcon = ({ size = 24, strokeWidth = 1.5, className = '' }: I
     <path d="M8.7 9.4c.2-.5.4-.5.6-.5h.5c.2 0 .4.1.5.3l.7 1.6c.1.2 0 .5-.1.6l-.5.6c.5 1.1 1.4 2 2.5 2.5l.6-.5c.2-.2.4-.2.6-.1l1.6.7c.2.1.3.3.3.5v.5c0 .3-.2.5-.5.6-2.9.6-6-1.9-6.9-4.8-.1-.4-.1-1.1.1-1.4z" />
   </svg>
 );
-
-export const socialLinks = [
-  { name: 'Instagram', href: '#', Icon: InstagramIcon },
-  { name: 'Facebook', href: '#', Icon: FacebookIcon },
-  { name: 'X', href: '#', Icon: XSocialIcon },
-  { name: 'WhatsApp', href: '#', Icon: WhatsAppIcon },
-];

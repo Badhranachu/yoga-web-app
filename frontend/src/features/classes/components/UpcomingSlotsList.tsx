@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { FormError } from '@/shared/ui';
 import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { classesApi } from '../api/classesApi';
+import { SlotAvailabilityBadge } from './SlotAvailabilityBadge';
 import type { Slot } from '../types';
 
 const PREVIEW_COUNT = 14;
@@ -51,9 +52,10 @@ export const UpcomingSlotsList = () => {
           {slots.map((slot) => (
             <div key={slot.id} className="rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm">
               <div className="text-[#2B241E] font-medium">{formatDate(slot.date)}</div>
-              <div className="text-[#786A58]">
+              <div className="text-[#786A58] mb-2">
                 {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
               </div>
+              <SlotAvailabilityBadge availability={slot.availability} />
             </div>
           ))}
         </div>

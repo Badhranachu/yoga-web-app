@@ -1,3 +1,5 @@
+from decimal import Decimal, InvalidOperation
+
 from django.db import models
 
 
@@ -39,6 +41,13 @@ class StudioSetting(TimeStampedModel):
         try:
             return int(cls.objects.get(key=key).value)
         except (cls.DoesNotExist, ValueError):
+            return default
+
+    @classmethod
+    def get_decimal(cls, key: str, default: Decimal) -> Decimal:
+        try:
+            return Decimal(cls.objects.get(key=key).value)
+        except (cls.DoesNotExist, InvalidOperation):
             return default
 
     @classmethod
