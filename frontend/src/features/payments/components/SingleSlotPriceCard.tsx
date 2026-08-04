@@ -50,7 +50,7 @@ export const SingleSlotPriceCard = ({ price, onUpdated }: SingleSlotPriceCardPro
 
       <div className="flex items-end gap-4">
         <TextField
-          label="Price (AED)"
+          label="Price (INR)"
           type="number"
           min="0"
           step="0.01"

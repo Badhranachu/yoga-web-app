@@ -384,7 +384,7 @@ transaction in the same transaction as the domain purchase.
 | provider_transaction_id | CharField(128) | optional external gateway identifier |
 | payment_type | CharField(16) | `subscription` or `single_slot` |
 | amount | Decimal(10,2) | charged amount snapshot |
-| currency | CharField(3) | default `AED` |
+| currency | CharField(3) | default `INR` |
 | status | CharField(16) | `pending`, `successful`, `failed`, or `refunded` |
 | subscription_id / slot_purchase_id | nullable FK | source domain purchase |
 | metadata | JSON | gateway-neutral extension data |

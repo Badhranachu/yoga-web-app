@@ -109,9 +109,10 @@ class UserSubscription(TimeStampedModel):
 
 class SlotPurchase(TimeStampedModel):
     """A pay-per-slot purchase, made when a user has no active subscription
-    or has exhausted their session balance. Recorded for audit/history —
-    the future Bookings module is what actually links this to a specific
-    slot booking.
+    or has exhausted their session balance. Functions as a single-use
+    credit: paid for up front (independent of which slot, if any, is picked
+    at that moment), then consumed by apps.bookings.services.create_booking
+    the next time this user books any slot — see used_at/used_for_booking.
     """
 
     user = models.ForeignKey(
@@ -120,6 +121,15 @@ class SlotPurchase(TimeStampedModel):
         related_name='slot_purchases',
     )
     price_paid = models.DecimalField(max_digits=10, decimal_places=2, help_text='Snapshot of the single-slot price at purchase time.')
+    used_at = models.DateTimeField(null=True, blank=True, help_text='Set when this credit is consumed by a booking.')
+    used_for_booking = models.ForeignKey(
+        'bookings.Booking',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='slot_purchase_credits_used',
+        help_text='The booking this credit was spent on, if any.',
+    )
 
     class Meta:
         db_table = 'payments_slot_purchase'
@@ -127,6 +137,10 @@ class SlotPurchase(TimeStampedModel):
 
     def __str__(self):
         return f'{self.user_id} — single slot @ {self.price_paid}'
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
 
 
 class PaymentTransaction(TimeStampedModel):
@@ -152,7 +166,7 @@ class PaymentTransaction(TimeStampedModel):
     provider_transaction_id = models.CharField(max_length=128, blank=True, default='')
     payment_type = models.CharField(max_length=16, choices=PaymentType.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default='AED')
+    currency = models.CharField(max_length=3, default='INR')
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     subscription = models.ForeignKey(
         UserSubscription,
@@ -196,7 +210,7 @@ class Receipt(TimeStampedModel):
     user_email = models.EmailField()
     payment_type = models.CharField(max_length=16, choices=PaymentTransaction.PaymentType.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default='AED')
+    currency = models.CharField(max_length=3, default='INR')
     payment_date = models.DateTimeField()
     status = models.CharField(max_length=16, choices=PaymentTransaction.Status.choices)
 

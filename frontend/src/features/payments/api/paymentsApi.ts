@@ -2,12 +2,15 @@ import { apiClient } from '@/shared/lib/apiClient';
 import type { ApiSuccess } from '@/shared/types/api';
 import type {
   PaymentActionResponse,
+  PaymentOrder,
   PaymentTransaction,
+  PaymentType,
   RevenueSummary,
   SingleSlotPrice,
   SubscriptionPlan,
   SubscriptionPlanUpdatePayload,
   UserSubscription,
+  VerifyPaymentPayload,
 } from '../types';
 import type { PaginatedResponse } from '@/features/classes/types';
 
@@ -42,18 +45,22 @@ export const paymentsApi = {
     return data.data;
   },
 
-  purchaseSubscription: async (): Promise<PaymentActionResponse> => {
-    const { data } = await apiClient.post<ApiSuccess<PaymentActionResponse>>('/payments/subscriptions/purchase/');
+  getMySubscriptionHistoryStatus: async (): Promise<{ has_previous_subscription: boolean }> => {
+    const { data } = await apiClient.get<ApiSuccess<{ has_previous_subscription: boolean }>>(
+      '/payments/subscriptions/me/history-status/',
+    );
     return data.data;
   },
 
-  renewSubscription: async (): Promise<PaymentActionResponse> => {
-    const { data } = await apiClient.post<ApiSuccess<PaymentActionResponse>>('/payments/subscriptions/renew/');
+  createOrder: async (paymentType: PaymentType): Promise<PaymentOrder> => {
+    const { data } = await apiClient.post<ApiSuccess<PaymentOrder>>('/payments/orders/create/', {
+      payment_type: paymentType,
+    });
     return data.data;
   },
 
-  payPerSlot: async (): Promise<PaymentActionResponse> => {
-    const { data } = await apiClient.post<ApiSuccess<PaymentActionResponse>>('/payments/slot-purchases/');
+  verifyPayment: async (payload: VerifyPaymentPayload): Promise<PaymentActionResponse> => {
+    const { data } = await apiClient.post<ApiSuccess<PaymentActionResponse>>('/payments/orders/verify/', payload);
     return data.data;
   },
 
@@ -72,7 +79,7 @@ export const paymentsApi = {
     const url = URL.createObjectURL(response.data);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = `receipt-${receiptId}.txt`;
+    anchor.download = `receipt-${receiptId}.pdf`;
     anchor.click();
     URL.revokeObjectURL(url);
   },

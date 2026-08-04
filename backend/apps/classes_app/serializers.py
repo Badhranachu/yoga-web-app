@@ -17,6 +17,7 @@ class TimetableConfigSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'weekday', 'weekday_display', 'is_open',
             'start_time', 'end_time', 'slot_duration_minutes',
+            'break_start_time', 'break_end_time',
             'updated_at',
         ]
         read_only_fields = ['id', 'weekday_display', 'updated_at']
@@ -26,6 +27,8 @@ class TimetableConfigSerializer(serializers.ModelSerializer):
         start_time = attrs.get('start_time', getattr(self.instance, 'start_time', None))
         end_time = attrs.get('end_time', getattr(self.instance, 'end_time', None))
         duration = attrs.get('slot_duration_minutes', getattr(self.instance, 'slot_duration_minutes', None))
+        break_start = attrs.get('break_start_time', getattr(self.instance, 'break_start_time', None))
+        break_end = attrs.get('break_end_time', getattr(self.instance, 'break_end_time', None))
 
         if is_open:
             if not start_time or not end_time:
@@ -34,6 +37,14 @@ class TimetableConfigSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError({'end_time': 'End time must be after start time.'})
             if not duration or duration <= 0:
                 raise serializers.ValidationError({'slot_duration_minutes': 'Slot duration must be a positive number of minutes.'})
+
+            if (break_start is None) != (break_end is None):
+                raise serializers.ValidationError({'break_end_time': 'Both break start and end time are required together.'})
+            if break_start is not None and break_end is not None:
+                if break_start >= break_end:
+                    raise serializers.ValidationError({'break_end_time': 'Break end time must be after break start time.'})
+                if break_start < start_time or break_end > end_time:
+                    raise serializers.ValidationError({'break_start_time': 'Break time must fall within the working hours.'})
 
         return attrs
 

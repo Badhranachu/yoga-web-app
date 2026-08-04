@@ -13,9 +13,13 @@ Callers decide *when* to call them; this module only enforces that a
 balance never goes negative and status transitions stay consistent.
 """
 
+import hmac
+import hashlib
 from datetime import timedelta
 from decimal import Decimal
 
+import razorpay
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 
@@ -37,6 +41,37 @@ class SubscriptionStateError(Exception):
     """Raised for invalid subscription state transitions (e.g. deducting with no active subscription)."""
 
 
+class PaymentVerificationError(Exception):
+    """Raised when a Razorpay checkout signature fails verification."""
+
+
+def get_razorpay_client() -> razorpay.Client:
+    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+
+
+def create_razorpay_order(amount: Decimal, *, receipt: str) -> dict:
+    """Creates a Razorpay Order for the given amount (INR) and returns the
+    raw order dict. amount is in rupees; Razorpay expects paise.
+    """
+    client = get_razorpay_client()
+    return client.order.create({
+        'amount': int(amount * 100),
+        'currency': 'INR',
+        'receipt': receipt,
+        'payment_capture': 1,
+    })
+
+
+def verify_razorpay_signature(*, order_id: str, payment_id: str, signature: str) -> None:
+    generated = hmac.new(
+        settings.RAZORPAY_KEY_SECRET.encode('utf-8'),
+        f'{order_id}|{payment_id}'.encode('utf-8'),
+        hashlib.sha256,
+    ).hexdigest()
+    if not hmac.compare_digest(generated, signature):
+        raise PaymentVerificationError('Payment signature verification failed.')
+
+
 def get_active_plan() -> SubscriptionPlan:
     plan = SubscriptionPlan.objects.filter(is_active=True).order_by('-id').first()
     if plan is None:
@@ -46,6 +81,21 @@ def get_active_plan() -> SubscriptionPlan:
 
 def get_single_slot_price() -> Decimal:
     return StudioSetting.get_decimal(SINGLE_SLOT_PRICE, Decimal(SINGLE_SLOT_PRICE_DEFAULT))
+
+
+def create_order_for_payment_type(user, payment_type: str) -> dict:
+    """Creates a Razorpay order for the amount matching the requested
+    action (subscription purchase/renew always charges the current plan
+    price; single_slot charges the current single-slot price). Returns the
+    raw order data the frontend needs to open Razorpay Checkout.
+    """
+    if payment_type == PaymentTransaction.PaymentType.SUBSCRIPTION:
+        amount = get_active_plan().monthly_price
+    else:
+        amount = get_single_slot_price()
+
+    order = create_razorpay_order(amount, receipt=f'{payment_type}-{user.pk}-{int(timezone.now().timestamp())}')
+    return {'order': order, 'amount': amount}
 
 
 @transaction.atomic
@@ -150,7 +200,7 @@ def _sync_status(subscription: UserSubscription) -> None:
 
 
 @transaction.atomic
-def purchase_subscription(user) -> UserSubscription:
+def purchase_subscription(user, *, provider: str = '', provider_transaction_id: str = '', metadata: dict | None = None) -> UserSubscription:
     """Starts a brand-new subscription cycle for a user who has no
     currently-active one. If the user already has an ACTIVE, usable
     subscription, this raises rather than silently stacking a second one
@@ -182,6 +232,9 @@ def purchase_subscription(user) -> UserSubscription:
         plan.monthly_price,
         PaymentTransaction.PaymentType.SUBSCRIPTION,
         subscription=subscription,
+        provider=provider,
+        provider_transaction_id=provider_transaction_id,
+        metadata=metadata,
     )
     NotificationService.create(
         locked_user,
@@ -197,7 +250,7 @@ def purchase_subscription(user) -> UserSubscription:
 
 
 @transaction.atomic
-def renew_subscription(user) -> UserSubscription:
+def renew_subscription(user, *, provider: str = '', provider_transaction_id: str = '', metadata: dict | None = None) -> UserSubscription:
     """Renews the user's subscription — usable whether the previous cycle
     is still active, expired, or exhausted (all three are legitimate
     reasons to renew). Always starts a fresh cycle at the plan's current
@@ -232,6 +285,9 @@ def renew_subscription(user) -> UserSubscription:
         plan.monthly_price,
         PaymentTransaction.PaymentType.SUBSCRIPTION,
         subscription=subscription,
+        provider=provider,
+        provider_transaction_id=provider_transaction_id,
+        metadata=metadata,
     )
     NotificationService.create(
         locked_user,
@@ -288,10 +344,10 @@ def restore_session(subscription: UserSubscription) -> UserSubscription:
 
 
 @transaction.atomic
-def record_slot_purchase(user) -> SlotPurchase:
+def record_slot_purchase(user, *, provider: str = '', provider_transaction_id: str = '', metadata: dict | None = None) -> SlotPurchase:
     """Pay-per-slot path, used when the user has no usable subscription.
-    Purely a payment record for this phase — the future Bookings module
-    ties a specific slot booking to this purchase.
+    Creates an unused credit — see get_unused_slot_purchase / consume_slot_purchase
+    for how it's later redeemed against a specific booking.
     """
     purchase = SlotPurchase.objects.create(user=user, price_paid=get_single_slot_price())
     record_successful_payment(
@@ -299,5 +355,32 @@ def record_slot_purchase(user) -> SlotPurchase:
         purchase.price_paid,
         PaymentTransaction.PaymentType.SINGLE_SLOT,
         slot_purchase=purchase,
+        provider=provider,
+        provider_transaction_id=provider_transaction_id,
+        metadata=metadata,
     )
     return purchase
+
+
+def get_unused_slot_purchase(user) -> SlotPurchase | None:
+    """The user's oldest unused single-slot credit, if any — spent
+    oldest-first so credits don't sit around indefinitely. Used by
+    apps.bookings.services.create_booking to decide whether a booking is
+    already paid for.
+    """
+    return SlotPurchase.objects.filter(user=user, used_at__isnull=True).order_by('created_at').first()
+
+
+@transaction.atomic
+def consume_slot_purchase(purchase: SlotPurchase, booking) -> SlotPurchase:
+    """Marks a single-slot credit as spent on the given booking. Locks the
+    row so two concurrent bookings can never both consume the same credit.
+    """
+    locked = SlotPurchase.objects.select_for_update().get(pk=purchase.pk)
+    if locked.used_at is not None:
+        raise SubscriptionStateError('This slot credit has already been used.')
+
+    locked.used_at = timezone.now()
+    locked.used_for_booking = booking
+    locked.save(update_fields=['used_at', 'used_for_booking', 'updated_at'])
+    return locked

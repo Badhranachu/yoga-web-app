@@ -43,13 +43,24 @@ def get_generation_horizon_days() -> int:
 
 
 def _slot_windows_for_config(config: TimetableConfig):
-    """Yields (start_time, end_time) tuples for one day, given a TimetableConfig row."""
-    cursor = datetime.combine(timezone.localdate(), config.start_time)
-    day_end = datetime.combine(timezone.localdate(), config.end_time)
+    """Yields (start_time, end_time) tuples for one day, given a TimetableConfig
+    row. Any slot that would overlap the configured break window (rest time)
+    is skipped entirely — the break is a gap, not a shortened slot.
+    """
+    anchor_date = timezone.localdate()
+    cursor = datetime.combine(anchor_date, config.start_time)
+    day_end = datetime.combine(anchor_date, config.end_time)
     step = timedelta(minutes=config.slot_duration_minutes)
 
+    break_start = datetime.combine(anchor_date, config.break_start_time) if config.has_break else None
+    break_end = datetime.combine(anchor_date, config.break_end_time) if config.has_break else None
+
     while cursor + step <= day_end:
-        yield cursor.time(), (cursor + step).time()
+        window_end = cursor + step
+        if break_start is not None and cursor < break_end and window_end > break_start:
+            cursor += step
+            continue
+        yield cursor.time(), window_end.time()
         cursor += step
 
 

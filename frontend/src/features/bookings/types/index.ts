@@ -1,13 +1,12 @@
 import type { Slot } from '@/features/classes/types';
 
-export type BookingStatus = 'booked' | 'cancelled' | 'attended';
+export type BookingStatus = 'booked' | 'attended';
 
 export type Booking = {
   id: number;
   slot: Slot;
   user_email: string;
   status: BookingStatus;
-  cancelled_at: string | null;
   attended_at: string | null;
   created_at: string;
 };

@@ -1,3 +1,4 @@
+import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import type { Booking } from '../types';
 import type { Slot } from '@/features/classes/types';
 
@@ -43,7 +44,9 @@ export const BookingChangeDialog = ({
   onSlotChange,
   onAccept,
   onReject,
-}: BookingChangeDialogProps) => (
+}: BookingChangeDialogProps) => {
+  useBodyScrollLock();
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/45 px-4" role="presentation">
     <div role="dialog" aria-modal="true" aria-labelledby="booking-change-title" className="w-full max-w-md rounded-3xl border border-white/60 bg-[#F5EFE5] p-7 shadow-2xl">
       <h3 id="booking-change-title" className="font-serif text-2xl text-[#2B241E]">{title}</h3>
@@ -81,4 +84,5 @@ export const BookingChangeDialog = ({
       </div>
     </div>
   </div>
-);
+  );
+};

@@ -50,7 +50,7 @@ export const SubscriptionPlanCard = ({ plan, onUpdated }: SubscriptionPlanCardPr
 
       <div className="grid sm:grid-cols-2 gap-4 mb-6">
         <TextField
-          label="Monthly Price (AED)"
+          label="Monthly Price (INR)"
           type="number"
           min="0"
           step="0.01"

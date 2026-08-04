@@ -18,11 +18,16 @@ export type TimetableConfig = {
   start_time: string; // "HH:MM:SS"
   end_time: string;
   slot_duration_minutes: number;
+  break_start_time: string | null;
+  break_end_time: string | null;
   updated_at: string;
 };
 
 export type TimetableConfigUpdatePayload = Partial<
-  Pick<TimetableConfig, 'is_open' | 'start_time' | 'end_time' | 'slot_duration_minutes'>
+  Pick<
+    TimetableConfig,
+    'is_open' | 'start_time' | 'end_time' | 'slot_duration_minutes' | 'break_start_time' | 'break_end_time'
+  >
 >;
 
 export type SlotAvailability = 'available' | 'unavailable' | 'booked' | 'leave_conflict';

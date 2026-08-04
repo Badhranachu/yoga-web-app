@@ -79,3 +79,20 @@ export type RevenueSummary = {
 export type SingleSlotPrice = {
   single_slot_price: number;
 };
+
+export type PaymentOrder = {
+  order_id: string;
+  amount: number; // paise
+  currency: string;
+  key_id: string;
+  payment_type: PaymentType;
+};
+
+export type VerifyPaymentAction = 'purchase' | 'renew' | 'slot';
+
+export type VerifyPaymentPayload = {
+  action: VerifyPaymentAction;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+};

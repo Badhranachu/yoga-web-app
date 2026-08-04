@@ -1,34 +1,61 @@
 # Payments API
 
-## Payment actions
+## Razorpay checkout flow
 
-Existing payment actions remain:
+Purchasing/renewing a subscription or paying per slot is a two-step flow —
+no subscription/slot-purchase row is created until a real Razorpay payment
+is verified:
 
-- `POST /api/payments/subscriptions/purchase/`
-- `POST /api/payments/subscriptions/renew/`
-- `POST /api/payments/slot-purchases/`
+1. `POST /api/payments/orders/create/` with `{"payment_type": "subscription"|"single_slot"}`.
+   Returns a Razorpay order for the current plan price / single-slot price:
 
-Successful responses now include the domain result and the generated payment:
+   ```json
+   {
+     "success": true,
+     "data": {
+       "order_id": "order_...",
+       "amount": 120000,
+       "currency": "INR",
+       "key_id": "rzp_test_...",
+       "payment_type": "subscription"
+     }
+   }
+   ```
 
-```json
-{
-  "success": true,
-  "data": {
-    "subscription": {},
-    "payment": {
-      "transaction_id": "txn_...",
-      "amount": "1200.00",
-      "currency": "AED",
-      "status": "successful",
-      "receipt": {
-        "receipt_number": "EKAM-20260801-..."
-      }
-    }
-  }
-}
-```
+   The frontend opens Razorpay Checkout with these values.
 
-Single-slot payments return `purchase` instead of `subscription`.
+2. `POST /api/payments/orders/verify/` once checkout succeeds, with
+   `{"action": "purchase"|"renew"|"slot", "razorpay_order_id", "razorpay_payment_id", "razorpay_signature"}`.
+   The signature is verified server-side (HMAC-SHA256 with
+   `RAZORPAY_KEY_SECRET`) before the domain action runs. Only on success is
+   the subscription purchased/renewed or the slot purchase recorded:
+
+   ```json
+   {
+     "success": true,
+     "data": {
+       "subscription": {},
+       "payment": {
+         "transaction_id": "txn_...",
+         "provider": "razorpay",
+         "provider_transaction_id": "pay_...",
+         "amount": "1200.00",
+         "currency": "INR",
+         "status": "successful",
+         "receipt": {
+           "receipt_number": "EKAM-20260801-..."
+         }
+       }
+     }
+   }
+   ```
+
+   Single-slot payments (`action: "slot"`) return `purchase` instead of
+   `subscription`. An invalid/forged signature returns `400` and nothing is
+   created.
+
+Both endpoints require `PAYMENT_PROCESSING_ENABLED=True` (the default) and
+`RAZORPAY_KEY_ID` / `RAZORPAY_KEY_SECRET` configured in `.env`.
 
 ## Payment history
 
@@ -41,7 +68,7 @@ history from the same endpoint.
 
 `GET /api/payments/revenue/`
 
-Admin-only. Returns successful transaction count, total revenue in AED, and
+Admin-only. Returns successful transaction count, total revenue in INR, and
 totals grouped by payment type.
 
 ## Receipt download

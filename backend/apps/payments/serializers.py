@@ -37,14 +37,27 @@ class UserSubscriptionSerializer(serializers.ModelSerializer):
 
 
 class SlotPurchaseSerializer(serializers.ModelSerializer):
+    is_used = serializers.BooleanField(read_only=True)
+
     class Meta:
         model = SlotPurchase
-        fields = ['id', 'price_paid', 'created_at']
+        fields = ['id', 'price_paid', 'is_used', 'used_at', 'created_at']
         read_only_fields = fields
 
 
 class SingleSlotPriceSerializer(serializers.Serializer):
     single_slot_price = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=Decimal('0'))
+
+
+class CreatePaymentOrderSerializer(serializers.Serializer):
+    payment_type = serializers.ChoiceField(choices=PaymentTransaction.PaymentType.choices)
+
+
+class VerifyPaymentSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=['purchase', 'renew', 'slot'])
+    razorpay_order_id = serializers.CharField()
+    razorpay_payment_id = serializers.CharField()
+    razorpay_signature = serializers.CharField()
 
 
 class ReceiptSerializer(serializers.ModelSerializer):

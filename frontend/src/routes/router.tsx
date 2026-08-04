@@ -11,10 +11,11 @@ import { AdminLayout } from '@/features/dashboard-overview/components/AdminLayou
 import { OverviewPage } from '@/features/dashboard-overview/routes/OverviewPage';
 import { ClassesPage } from '@/features/classes/routes/ClassesPage';
 import { MembersPage } from '@/features/members/routes/MembersPage';
-import { TrainersPage } from '@/features/trainers/routes/TrainersPage';
 import { BookingsPage } from '@/features/bookings/routes/BookingsPage';
 import { BookSlotPage } from '@/features/bookings/routes/BookSlotPage';
 import { PaymentsPage } from '@/features/payments/routes/PaymentsPage';
+import { PaymentHistoryPage } from '@/features/payments/routes/PaymentHistoryPage';
+import { NotificationsPage } from '@/features/notifications/routes/NotificationsPage';
 import { ReportsPage } from '@/features/reports/routes/ReportsPage';
 import { UserLayout } from '@/features/account/components/UserLayout';
 import { AccountOverviewPage } from '@/features/account/routes/AccountOverviewPage';
@@ -45,7 +46,6 @@ export const router = createBrowserRouter([
               { index: true, element: <OverviewPage /> },
               { path: 'classes', element: <ClassesPage /> },
               { path: 'members', element: <MembersPage /> },
-              { path: 'trainers', element: <TrainersPage /> },
               { path: 'bookings', element: <BookingsPage /> },
               { path: 'payments', element: <PaymentsPage /> },
               { path: 'reports', element: <ReportsPage /> },
@@ -63,6 +63,8 @@ export const router = createBrowserRouter([
               { index: true, element: <AccountOverviewPage /> },
               { path: 'book', element: <BookSlotPage /> },
               { path: 'subscription', element: <SubscriptionPage /> },
+              { path: 'payment-history', element: <PaymentHistoryPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
               { path: 'profile', element: <ProfilePage /> },
             ],
           },

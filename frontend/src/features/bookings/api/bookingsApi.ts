@@ -40,11 +40,6 @@ export const bookingsApi = {
     return data;
   },
 
-  cancelBooking: async (id: number): Promise<Booking> => {
-    const { data } = await apiClient.post<ApiSuccess<Booking>>(`/bookings/${id}/cancel/`);
-    return data.data;
-  },
-
   getAllBookings: async (params: BookingListParams = {}): Promise<PaginatedResponse<Booking>> => {
     const { data } = await apiClient.get<PaginatedResponse<Booking>>('/bookings/admin/', { params });
     return data;

@@ -54,8 +54,9 @@ export const ClassesPage = () => {
     <div className="max-w-4xl">
       <h2 className="font-serif text-2xl text-[#2B241E] mb-2">Timetable</h2>
       <p className="text-[#786A58] text-sm mb-8">
-        Set working hours and slot length per weekday. Bookable slots are generated automatically — you never
-        create them by hand. Changing a day only regenerates that day's future, unbooked slots.
+        Set working hours, slot length, and an optional daily rest time per weekday. Bookable slots are generated
+        automatically — you never create them by hand, and none are generated inside the rest window. Changing a
+        day only regenerates that day's future, unbooked slots.
       </p>
 
       <FormError message={loadError} />

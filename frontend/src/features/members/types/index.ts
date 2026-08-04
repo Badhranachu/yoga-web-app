@@ -1,2 +1,14 @@
-// Placeholder for member-related types (Member, MembershipPlan).
-export {};
+export type UserProfile = {
+  id: number;
+  username: string | null;
+  email: string;
+  role: string;
+  created_at: string;
+};
+
+export type CreateMemberPayload = {
+  username: string;
+  email: string;
+  password: string;
+  password_confirm: string;
+};

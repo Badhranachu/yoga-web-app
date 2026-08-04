@@ -1,5 +1,5 @@
 """
-Booking creation, cancellation, and attendance management.
+Booking creation and attendance management.
 
 Race-condition story ("prevent race conditions" / "use database locking"):
 Two users could POST a booking for the same slot at virtually the same
@@ -17,11 +17,14 @@ create_booking closes this with two independent layers:
      hard backstop — even if the row lock were somehow bypassed, the
      database itself refuses a second Booking row for the same slot_id.
 
-Attendance and session deduction are intentionally decoupled from booking
-creation (business rule): booking only reserves a slot. A session is
-deducted only when an admin marks a booking ATTENDED, and restored if
-that's reverted — see mark_attended / revert_attended, which call
-apps.payments.services.deduct_session / restore_session.
+Session deduction happens at booking time, not at attendance (business
+rule): if the booking user has a usable subscription, create_booking
+deducts one session immediately and records which subscription it came
+from. There is no cancel-and-refund path — once deducted, a session is
+only ever moved to a different slot via transfer/reschedule (which keeps
+the same subscription_deducted_from), never returned to the balance.
+mark_attended / revert_attended no longer touch the session balance;
+attendance is purely a record of whether the member showed up.
 """
 
 from django.conf import settings
@@ -33,7 +36,7 @@ from django.utils import timezone
 from apps.classes_app.models import Slot
 from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService
-from apps.payments.services import deduct_session, get_active_subscription, restore_session
+from apps.payments.services import consume_slot_purchase, deduct_session, get_active_subscription, get_unused_slot_purchase
 
 from .models import Booking, BookingChangeRequest
 
@@ -51,7 +54,7 @@ class SlotConflictError(SlotUnavailableError):
 
 
 class BookingStateError(Exception):
-    """Raised for invalid booking state transitions (e.g. cancelling an already-cancelled booking)."""
+    """Raised for invalid booking state transitions (e.g. marking an already-attended booking attended again)."""
 
 
 class BookingChangeRequestError(Exception):
@@ -328,8 +331,15 @@ def create_booking(user, slot_id: int) -> Booking:
     this transaction so a concurrent request for the same slot_id blocks
     until this one finishes, then correctly sees the slot as unavailable.
 
-    No payment or subscription check happens here — booking creation is
-    independent of payment/subscription balance, per business rule.
+    If the user has a usable subscription (active, unexpired, sessions
+    remaining), one session is deducted immediately — booking is the
+    charge point now, not attendance. Otherwise, if the user has an unused
+    single-slot payment credit (apps.payments.services.SlotPurchase with
+    used_at=None), that credit is consumed for this booking instead. A user
+    with neither is expected to have already paid for this specific slot
+    via the single-slot payment flow immediately before this is called
+    (BookSlotPage's pay-then-book sequence), which creates the credit this
+    call then consumes in the same request.
     """
     try:
         slot = Slot.objects.select_for_update().get(pk=slot_id)
@@ -354,7 +364,21 @@ def create_booking(user, slot_id: int) -> Booking:
             suggested_slot=_next_available_slot(slot),
         )
 
-    booking = Booking.objects.create(slot=slot, user=user, status=Booking.Status.BOOKED)
+    subscription = get_active_subscription(user)
+    if subscription is not None:
+        subscription = deduct_session(subscription)
+
+    booking = Booking.objects.create(
+        slot=slot,
+        user=user,
+        status=Booking.Status.BOOKED,
+        subscription_deducted_from=subscription,
+    )
+
+    if subscription is None:
+        credit = get_unused_slot_purchase(user)
+        if credit is not None:
+            consume_slot_purchase(credit, booking)
 
     slot.is_booked = True
     slot.save(update_fields=['is_booked', 'updated_at'])
@@ -374,87 +398,35 @@ def create_booking(user, slot_id: int) -> Booking:
 
 
 @transaction.atomic
-def cancel_booking(booking: Booking) -> Booking:
-    """Cancels a BOOKED (not yet attended) booking and frees the slot.
-    The Booking row is kept — cancelled bookings remain visible as
-    history, they are never deleted. No session is deducted or restored:
-    per business rule, only attendance touches the session balance.
-    """
-    locked = Booking.objects.select_for_update().select_related('slot').get(pk=booking.pk)
-
-    if locked.status != Booking.Status.BOOKED:
-        raise BookingStateError(f'Cannot cancel a booking with status "{locked.status}".')
-
-    locked.status = Booking.Status.CANCELLED
-    locked.cancelled_at = timezone.now()
-    locked.save(update_fields=['status', 'cancelled_at', 'updated_at'])
-
-    slot = locked.slot
-    slot.is_booked = False
-    slot.save(update_fields=['is_booked', 'updated_at'])
-
-    NotificationService.create(
-        locked.user,
-        Notification.NotificationType.BOOKING_CANCELLED,
-        'Booking Cancelled',
-        f'Your booking for {slot.date} at {slot.start_time.strftime("%H:%M")} was cancelled.',
-        related_type='booking',
-        related_id=locked.pk,
-        action_url='/account',
-        dedupe_key=f'booking-cancelled:{locked.pk}',
-    )
-
-    return locked
-
-
-@transaction.atomic
 def mark_attended(booking: Booking) -> Booking:
-    """Admin action: marks a BOOKED booking ATTENDED and deducts one
-    session from the booking user's currently active subscription, if
-    they have one. A pay-per-slot user (no active subscription) has
-    nothing to deduct — attendance is still recorded, just without a
-    balance change.
-
-    Records exactly which subscription the session was deducted from
-    (subscription_deducted_from), so revert_attended restores to that
-    same subscription later rather than whichever one happens to be
-    active at revert time — those can differ if the user renews in between.
+    """Admin action: marks a BOOKED booking ATTENDED. Purely a record of
+    whether the member showed up — the session for this booking (if any)
+    was already deducted at booking time, so no balance change happens here.
     """
     locked = Booking.objects.select_for_update().get(pk=booking.pk)
 
     if locked.status != Booking.Status.BOOKED:
         raise BookingStateError(f'Cannot mark attended from status "{locked.status}".')
 
-    subscription = get_active_subscription(locked.user)
-    if subscription is not None:
-        deduct_session(subscription)
-        locked.subscription_deducted_from = subscription
-
     locked.status = Booking.Status.ATTENDED
     locked.attended_at = timezone.now()
-    locked.save(update_fields=['status', 'attended_at', 'subscription_deducted_from', 'updated_at'])
+    locked.save(update_fields=['status', 'attended_at', 'updated_at'])
 
     return locked
 
 
 @transaction.atomic
 def revert_attended(booking: Booking) -> Booking:
-    """Admin action: reverts an ATTENDED booking back to BOOKED. If a
-    session was deducted at attend time (subscription_deducted_from is
-    set), restores exactly one session to that same subscription —
-    never to a different one the user may have since purchased.
+    """Admin action: reverts an ATTENDED booking back to BOOKED. No balance
+    change — attendance no longer affects the session balance either way.
     """
     locked = Booking.objects.select_for_update().get(pk=booking.pk)
 
     if locked.status != Booking.Status.ATTENDED:
         raise BookingStateError(f'Cannot revert attendance from status "{locked.status}".')
 
-    if locked.subscription_deducted_from is not None:
-        restore_session(locked.subscription_deducted_from)
-        locked.subscription_deducted_from = None
-
     locked.status = Booking.Status.BOOKED
     locked.attended_at = None
-    locked.save(update_fields=['status', 'attended_at', 'subscription_deducted_from', 'updated_at'])
+    locked.save(update_fields=['status', 'attended_at', 'updated_at'])
 
     return locked

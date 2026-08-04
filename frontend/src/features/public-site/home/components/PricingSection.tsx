@@ -17,7 +17,7 @@ export const PricingSection = () => (
           <div className="text-[#786A58] text-sm uppercase tracking-widest mb-4">Drop-In</div>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-5xl font-serif text-[#2B241E]">150</span>
-            <span className="text-[#786A58]">AED / class</span>
+            <span className="text-[#786A58]">INR / class</span>
           </div>
           <p className="text-sm text-[#786A58] mb-8 h-12">Try a live or online class with no commitment.</p>
           <div className="space-y-4 mb-10">
@@ -33,7 +33,7 @@ export const PricingSection = () => (
           <div className="text-[#D8B46A] text-sm uppercase tracking-widest mb-4">Monthly Plan</div>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-5xl font-serif text-[#F5EFE5]">1200</span>
-            <span className="text-[#F5EFE5]/60">AED / month</span>
+            <span className="text-[#F5EFE5]/60">INR / month</span>
           </div>
           <p className="text-sm text-[#F5EFE5]/70 mb-8 h-12">Unlimited group classes, live or online, all month long.</p>
           <div className="space-y-4 mb-10">

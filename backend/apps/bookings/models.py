@@ -15,16 +15,17 @@ class Booking(TimeStampedModel):
     what actually prevents two concurrent requests from double-booking
     the same slot (see services.py for the full race-condition story).
 
-    Booking a slot only reserves it — no payment or subscription check
-    happens here, and no session is deducted at creation time. Session
-    deduction happens later, only when an admin marks the booking
-    ATTENDED (see apps.payments.services.deduct_session and this app's
-    services.mark_attended / revert_attended).
+    Booking deducts a session immediately at creation time if the user has
+    a usable subscription (see services.create_booking, which calls
+    apps.payments.services.deduct_session). There is no cancel-and-refund
+    path — once deducted, a session only ever moves to a different slot via
+    transfer/reschedule, never back to the balance. Attendance
+    (mark_attended / revert_attended) is a pure status flag and no longer
+    touches the session balance.
     """
 
     class Status(models.TextChoices):
         BOOKED = 'booked', 'Booked'
-        CANCELLED = 'cancelled', 'Cancelled'
         ATTENDED = 'attended', 'Attended'
 
     slot = models.ForeignKey(
@@ -39,7 +40,6 @@ class Booking(TimeStampedModel):
         related_name='bookings',
     )
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.BOOKED)
-    cancelled_at = models.DateTimeField(null=True, blank=True)
     attended_at = models.DateTimeField(null=True, blank=True)
     subscription_deducted_from = models.ForeignKey(
         UserSubscription,
@@ -47,12 +47,7 @@ class Booking(TimeStampedModel):
         null=True,
         blank=True,
         related_name='bookings_deducted',
-        help_text=(
-            'Set exactly when a session was deducted for this booking (on mark_attended). '
-            'revert_attended restores to this specific subscription, not whichever one is '
-            'currently active, so a renewal between attend and revert can never misattribute '
-            'the restored session.'
-        ),
+        help_text='Set when a session was deducted for this booking at creation time (create_booking).',
     )
 
     class Meta:

@@ -1,6 +1,9 @@
 from django.urls import path
 
+from .views import MemberListCreateView
+
 app_name = 'members'
 
-# Placeholder. Member management endpoints land here.
-urlpatterns = []
+urlpatterns = [
+    path('', MemberListCreateView.as_view(), name='list-create-member'),
+]

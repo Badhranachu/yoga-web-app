@@ -13,7 +13,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id', 'slot', 'user_email', 'status',
-            'cancelled_at', 'attended_at', 'created_at',
+            'attended_at', 'created_at',
         ]
         read_only_fields = fields
 

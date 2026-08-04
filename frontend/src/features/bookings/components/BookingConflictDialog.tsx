@@ -1,3 +1,4 @@
+import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import type { Slot } from '@/features/classes/types';
 
 export type BookingConflictDialogProps = {
@@ -26,7 +27,9 @@ export const BookingConflictDialog = ({
   isAccepting,
   onAccept,
   onCancel,
-}: BookingConflictDialogProps) => (
+}: BookingConflictDialogProps) => {
+  useBodyScrollLock();
+  return (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/45 px-4" role="presentation">
     <div
       role="dialog"
@@ -77,4 +80,5 @@ export const BookingConflictDialog = ({
       </div>
     </div>
   </div>
-);
+  );
+};

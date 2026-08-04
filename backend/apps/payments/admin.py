@@ -24,16 +24,13 @@ class UserSubscriptionAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
 
 @admin.register(SlotPurchase)
 class SlotPurchaseAdmin(admin.ModelAdmin):
-    list_display = ['user', 'price_paid', 'created_at']
+    list_display = ['user', 'price_paid', 'is_used_label', 'used_for_booking', 'created_at']
+    list_filter = ['used_at']
     search_fields = ['user__email']
-    date_hierarchy = 'created_at'
-    readonly_fields = ['user', 'price_paid']
+    readonly_fields = [field.name for field in SlotPurchase._meta.fields]
 
     def has_add_permission(self, request):
         return False
@@ -41,8 +38,9 @@ class SlotPurchaseAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
+    @admin.display(description='Used', boolean=True)
+    def is_used_label(self, obj):
+        return obj.is_used
 
 
 @admin.register(PaymentTransaction)
@@ -58,9 +56,6 @@ class PaymentTransactionAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
 
 @admin.register(Receipt)
 class ReceiptAdmin(admin.ModelAdmin):
@@ -73,7 +68,4 @@ class ReceiptAdmin(admin.ModelAdmin):
         return False
 
     def has_change_permission(self, request, obj=None):
-        return False
-
-    def has_delete_permission(self, request, obj=None):
         return False

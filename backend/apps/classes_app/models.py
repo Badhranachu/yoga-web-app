@@ -29,6 +29,14 @@ class TimetableConfig(TimeStampedModel):
     start_time = models.TimeField(help_text='Working start time, e.g. 09:00.')
     end_time = models.TimeField(help_text='Working end time, e.g. 21:00.')
     slot_duration_minutes = models.PositiveSmallIntegerField(help_text='Length of each generated slot, in minutes.')
+    break_start_time = models.TimeField(
+        null=True, blank=True,
+        help_text='Start of the daily rest/break window (optional). No slots are generated inside it.',
+    )
+    break_end_time = models.TimeField(
+        null=True, blank=True,
+        help_text='End of the daily rest/break window (optional).',
+    )
 
     class Meta:
         db_table = 'classes_timetable_config'
@@ -48,8 +56,23 @@ class TimetableConfig(TimeStampedModel):
                 errors['end_time'] = 'End time must be after start time.'
             if not self.slot_duration_minutes:
                 errors['slot_duration_minutes'] = 'Slot duration is required for an open day.'
+
+            has_break_start = self.break_start_time is not None
+            has_break_end = self.break_end_time is not None
+            if has_break_start != has_break_end:
+                errors['break_end_time'] = 'Both break start and end time are required together.'
+            elif has_break_start and has_break_end:
+                if self.break_start_time >= self.break_end_time:
+                    errors['break_end_time'] = 'Break end time must be after break start time.'
+                if self.start_time is not None and self.end_time is not None:
+                    if self.break_start_time < self.start_time or self.break_end_time > self.end_time:
+                        errors['break_start_time'] = 'Break time must fall within the working hours.'
         if errors:
             raise ValidationError(errors)
+
+    @property
+    def has_break(self) -> bool:
+        return self.break_start_time is not None and self.break_end_time is not None
 
 
 class Slot(TimeStampedModel):

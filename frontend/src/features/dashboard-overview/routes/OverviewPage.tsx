@@ -7,7 +7,7 @@ import { RecentBookingsWidget } from '../components/RecentBookingsWidget';
 import { RecentPaymentsWidget } from '../components/RecentPaymentsWidget';
 import type { DashboardOverview } from '../types';
 
-const money = (amount: string) => `AED ${amount}`;
+const money = (amount: string) => `INR ${amount}`;
 
 export const OverviewPage = () => {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);

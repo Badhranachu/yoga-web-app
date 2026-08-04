@@ -7,6 +7,6 @@ read-only and returns the shared success envelope. It includes the eleven
 dashboard metrics, five recent payments, five recent bookings, and seven daily
 points for each of the revenue, booking, and subscription trends.
 
-Revenue values are strings in the payment currency (currently AED). The
+Revenue values are strings in the payment currency (currently INR). The
 aggregate keeps the dashboard from duplicating domain API calls in the
 browser.

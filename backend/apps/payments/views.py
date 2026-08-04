@@ -13,22 +13,28 @@ from apps.core.responses import error_response, success_response
 from apps.core.settings_keys import SINGLE_SLOT_PRICE, SINGLE_SLOT_PRICE_DEFAULT
 
 from .models import PaymentTransaction, Receipt, SubscriptionPlan, UserSubscription
+from .pdf import render_receipt_pdf
 from .serializers import (
+    CreatePaymentOrderSerializer,
     SingleSlotPriceSerializer,
     SlotPurchaseSerializer,
     SubscriptionPlanSerializer,
     PaymentTransactionSerializer,
     ReceiptSerializer,
     UserSubscriptionSerializer,
+    VerifyPaymentSerializer,
 )
 from .services import (
     NoActivePlanError,
+    PaymentVerificationError,
     SubscriptionStateError,
+    create_order_for_payment_type,
     get_active_subscription,
     get_single_slot_price,
     purchase_subscription,
     record_slot_purchase,
     renew_subscription,
+    verify_razorpay_signature,
 )
 
 
@@ -118,10 +124,29 @@ class MySubscriptionView(APIView):
         )
 
 
-class PurchaseSubscriptionView(APIView):
-    """POST: starts a new subscription cycle. Fails if the user already
-    has a usable one (renew is the correct call in that case) or if no
-    plan is currently configured/active.
+class MySubscriptionHistoryStatusView(APIView):
+    """GET {"has_previous_subscription": bool} — whether the authenticated
+    user has ever purchased a subscription before (usable or not). Kept
+    separate from MySubscriptionView (which many callers use expecting a
+    plain UserSubscription-or-null payload) so Renew can be hidden for a
+    member who has genuinely never subscribed, without touching that
+    existing contract.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        has_previous_subscription = UserSubscription.objects.filter(user=request.user).exists()
+        return success_response(data={'has_previous_subscription': has_previous_subscription})
+
+
+class CreatePaymentOrderView(APIView):
+    """POST {"payment_type": "subscription"|"single_slot"}: creates a
+    Razorpay Order for the amount matching the requested action and
+    returns the order id/amount/key the frontend needs to open Razorpay
+    Checkout. Does not touch the domain (no subscription/slot row is
+    created here) — that only happens after the checkout signature is
+    verified, in VerifyAndCompletePaymentView.
     """
 
     permission_classes = [IsAuthenticated]
@@ -129,54 +154,32 @@ class PurchaseSubscriptionView(APIView):
     def post(self, request):
         if not settings.PAYMENT_PROCESSING_ENABLED:
             return _payment_processing_unavailable()
+
+        serializer = CreatePaymentOrderSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        payment_type = serializer.validated_data['payment_type']
+
         try:
-            subscription = purchase_subscription(request.user)
-        except NoActivePlanError:
-            return error_response('No subscription plan is currently available.')
-        except SubscriptionStateError as exc:
-            return error_response(str(exc))
-
-        return success_response(
-            data={
-                'subscription': UserSubscriptionSerializer(subscription).data,
-                'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
-            },
-            message='Subscription purchased successfully.',
-            status=status.HTTP_201_CREATED,
-        )
-
-
-class RenewSubscriptionView(APIView):
-    """POST: renews (or starts fresh, if none exists) — the single action
-    a user takes once their sessions reach zero or the cycle expires, per
-    the "Renew Subscription OR Pay per slot" business rule.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        if not settings.PAYMENT_PROCESSING_ENABLED:
-            return _payment_processing_unavailable()
-        try:
-            subscription = renew_subscription(request.user)
+            result = create_order_for_payment_type(request.user, payment_type)
         except NoActivePlanError:
             return error_response('No subscription plan is currently available.')
 
-        return success_response(
-            data={
-                'subscription': UserSubscriptionSerializer(subscription).data,
-                'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
-            },
-            message='Subscription renewed successfully.',
-            status=status.HTTP_201_CREATED,
-        )
+        order = result['order']
+        return success_response(data={
+            'order_id': order['id'],
+            'amount': order['amount'],
+            'currency': order['currency'],
+            'key_id': settings.RAZORPAY_KEY_ID,
+            'payment_type': payment_type,
+        })
 
 
-class PayPerSlotView(APIView):
-    """POST: records a single pay-per-visit purchase at the current
-    single-slot price. Available regardless of subscription state — most
-    relevant once a user's sessions are exhausted and they choose not to
-    renew.
+class VerifyAndCompletePaymentView(APIView):
+    """POST: verifies the Razorpay checkout signature for a completed
+    payment and, only once verified, performs the matching domain action
+    (purchase/renew subscription, or record a slot purchase). This is the
+    single place a subscription/slot-purchase row is created from a real
+    payment, replacing the previous auto-success behavior.
     """
 
     permission_classes = [IsAuthenticated]
@@ -184,7 +187,72 @@ class PayPerSlotView(APIView):
     def post(self, request):
         if not settings.PAYMENT_PROCESSING_ENABLED:
             return _payment_processing_unavailable()
-        purchase = record_slot_purchase(request.user)
+
+        serializer = VerifyPaymentSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        try:
+            verify_razorpay_signature(
+                order_id=data['razorpay_order_id'],
+                payment_id=data['razorpay_payment_id'],
+                signature=data['razorpay_signature'],
+            )
+        except PaymentVerificationError as exc:
+            return error_response(str(exc), code=status.HTTP_400_BAD_REQUEST)
+
+        provider_metadata = {
+            'razorpay_order_id': data['razorpay_order_id'],
+            'razorpay_payment_id': data['razorpay_payment_id'],
+        }
+        action = data['action']
+
+        if action == 'purchase':
+            try:
+                subscription = purchase_subscription(
+                    request.user,
+                    provider='razorpay',
+                    provider_transaction_id=data['razorpay_payment_id'],
+                    metadata=provider_metadata,
+                )
+            except NoActivePlanError:
+                return error_response('No subscription plan is currently available.')
+            except SubscriptionStateError as exc:
+                return error_response(str(exc))
+            return success_response(
+                data={
+                    'subscription': UserSubscriptionSerializer(subscription).data,
+                    'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
+                },
+                message='Subscription purchased successfully.',
+                status=status.HTTP_201_CREATED,
+            )
+
+        if action == 'renew':
+            try:
+                subscription = renew_subscription(
+                    request.user,
+                    provider='razorpay',
+                    provider_transaction_id=data['razorpay_payment_id'],
+                    metadata=provider_metadata,
+                )
+            except NoActivePlanError:
+                return error_response('No subscription plan is currently available.')
+            return success_response(
+                data={
+                    'subscription': UserSubscriptionSerializer(subscription).data,
+                    'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
+                },
+                message='Subscription renewed successfully.',
+                status=status.HTTP_201_CREATED,
+            )
+
+        purchase = record_slot_purchase(
+            request.user,
+            provider='razorpay',
+            provider_transaction_id=data['razorpay_payment_id'],
+            metadata=provider_metadata,
+        )
         return success_response(
             data={
                 'purchase': SlotPurchaseSerializer(purchase).data,
@@ -231,7 +299,7 @@ class RevenueSummaryView(APIView):
             for item in by_type
         }
         return success_response(data={
-            'currency': 'AED',
+            'currency': 'INR',
             'total_revenue': str(totals['total'] or 0),
             'transaction_count': totals['count'],
             'by_type': type_summary,
@@ -249,16 +317,7 @@ class ReceiptDownloadView(APIView):
         if not request.user.is_admin and receipt.transaction.user_id != request.user.pk:
             return error_response('You do not have access to this receipt.', code=status.HTTP_403_FORBIDDEN)
 
-        content = '\n'.join([
-            'EKAM YOGA PAYMENT RECEIPT',
-            f'Receipt Number: {receipt.receipt_number}',
-            f'Transaction ID: {receipt.transaction.transaction_id}',
-            f'User: {receipt.user_name} <{receipt.user_email}>',
-            f'Payment Type: {receipt.get_payment_type_display()}',
-            f'Amount: {receipt.amount} {receipt.currency}',
-            f'Date: {receipt.payment_date.isoformat()}',
-            f'Status: {receipt.get_status_display()}',
-        ])
-        response = HttpResponse(content, content_type='text/plain; charset=utf-8')
-        response['Content-Disposition'] = f'attachment; filename="{receipt.receipt_number}.txt"'
+        pdf_bytes = render_receipt_pdf(receipt)
+        response = HttpResponse(pdf_bytes, content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{receipt.receipt_number}.pdf"'
         return response

@@ -28,9 +28,6 @@ class SlotAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def has_delete_permission(self, request, obj=None):
-        return False
-
     @admin.display(description='Availability')
     def availability_label(self, obj):
         return Slot.Availability(obj.availability).label

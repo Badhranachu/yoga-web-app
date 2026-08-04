@@ -20,7 +20,6 @@ from .services import (
     BookingChangeRequestError,
     SlotConflictError,
     SlotUnavailableError,
-    cancel_booking,
     approve_change_request,
     create_reschedule_request,
     create_transfer_request,
@@ -69,8 +68,8 @@ class CreateBookingView(APIView):
 
 
 class MyBookingsView(ListAPIView):
-    """GET the authenticated user's own booking history — booked, cancelled,
-    and attended bookings are all included; nothing is ever hidden.
+    """GET the authenticated user's own booking history — booked and
+    attended bookings are all included; nothing is ever hidden.
     """
 
     serializer_class = BookingSerializer
@@ -89,28 +88,9 @@ class MyBookingsView(ListAPIView):
         return success_response(data=data)
 
 
-class CancelBookingView(APIView):
-    """POST: cancels the authenticated user's own BOOKED booking and frees
-    the slot. No session is deducted or restored — cancellation before
-    attendance never touches the subscription balance.
-    """
-
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, pk):
-        booking = get_object_or_404(Booking, pk=pk, user=request.user)
-
-        try:
-            booking = cancel_booking(booking)
-        except BookingStateError as exc:
-            return error_response(str(exc))
-
-        return success_response(data=BookingSerializer(booking).data, message='Booking cancelled.')
-
-
 class AdminBookingListView(ListAPIView):
     """GET every booking studio-wide (admin-only) — the one-instructor
-    studio's full booking log, including cancelled and attended history.
+    studio's full booking log, including attended history.
     """
 
     serializer_class = BookingSerializer

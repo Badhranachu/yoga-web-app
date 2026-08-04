@@ -42,7 +42,6 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.classes_app',
     'apps.members',
-    'apps.trainers',
     'apps.bookings',
     'apps.payments',
     'apps.notifications',
@@ -150,8 +149,8 @@ REST_FRAMEWORK = {
 
 # Simple JWT
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=30),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
     'AUTH_HEADER_TYPES': ('Bearer',),
@@ -171,6 +170,11 @@ FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:5173')
 # Development/test payment ledger switch. Production settings deliberately
 # disable this until a real gateway adapter is integrated.
 PAYMENT_PROCESSING_ENABLED = config('PAYMENT_PROCESSING_ENABLED', default=True, cast=bool)
+
+# Razorpay — used to create orders for subscription/slot purchases and to
+# verify the checkout signature before crediting a payment.
+RAZORPAY_KEY_ID = config('RAZORPAY_KEY_ID', default='')
+RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 
 # Password reset link validity window, consumed by accounts.models.PasswordResetToken.
 PASSWORD_RESET_TOKEN_TTL_HOURS = config('PASSWORD_RESET_TOKEN_TTL_HOURS', default=1, cast=int)
