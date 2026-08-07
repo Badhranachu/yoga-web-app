@@ -7,6 +7,7 @@ import type {
   BookingChangeRequest,
   BookingConflictData,
   CreateBookingPayload,
+  InstructorBooking,
 } from '../types';
 
 export type BookingListParams = {
@@ -43,6 +44,18 @@ export const bookingsApi = {
   getAllBookings: async (params: BookingListParams = {}): Promise<PaginatedResponse<Booking>> => {
     const { data } = await apiClient.get<PaginatedResponse<Booking>>('/bookings/admin/', { params });
     return data;
+  },
+
+  getInstructorBookings: async (params: BookingListParams = {}): Promise<PaginatedResponse<InstructorBooking>> => {
+    const { data } = await apiClient.get<PaginatedResponse<InstructorBooking>>('/bookings/instructor/me/', { params });
+    return data;
+  },
+
+  reassignInstructor: async (id: number, instructorId: number | null): Promise<Booking> => {
+    const { data } = await apiClient.post<ApiSuccess<Booking>>(`/bookings/${id}/reassign-instructor/`, {
+      instructor_id: instructorId,
+    });
+    return data.data;
   },
 
   markAttended: async (id: number): Promise<Booking> => {

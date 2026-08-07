@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react';
 import { CalendarDays } from 'lucide-react';
 import { paymentsApi } from '@/features/payments/api/paymentsApi';
+import { onSessionBalanceChanged } from '@/shared/lib/sessionBalanceBus';
 
 // Shows the member's live session balance next to the notification bell,
 // so it's visible from anywhere in the account area, not just the
 // Subscription page. Member-facing only — admins have no session balance.
+// Lives in the persistent account layout (rendered once, outside any
+// single page), so it can't rely on its own remount to pick up a change —
+// it refetches whenever notifySessionBalanceChanged() fires from wherever
+// the balance actually changed (e.g. after booking a slot).
 export const SessionsRemainingBadge = () => {
   const [sessionsRemaining, setSessionsRemaining] = useState<number | null>(null);
 
@@ -19,8 +24,10 @@ export const SessionsRemainingBadge = () => {
       }
     };
     void load();
+    const unsubscribe = onSessionBalanceChanged(() => void load());
     return () => {
       cancelled = true;
+      unsubscribe();
     };
   }, []);
 

@@ -5,6 +5,8 @@ import { bookingsApi } from '../api/bookingsApi';
 import { BookingChangeDialog } from '../components/BookingChangeDialog';
 import { classesApi } from '@/features/classes/api/classesApi';
 import type { Slot } from '@/features/classes/types';
+import { instructorsApi } from '@/features/instructors/api/instructorsApi';
+import type { InstructorProfile } from '@/features/instructors/types';
 import type { Booking, BookingChangeRequest, BookingStatus } from '../types';
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
@@ -25,8 +27,10 @@ const formatTime = (isoTime: string) =>
 // session from the member's subscription (see apps.payments.services).
 export const BookingsPage = () => {
   const [bookings, setBookings] = useState<Booking[] | null>(null);
+  const [instructors, setInstructors] = useState<InstructorProfile[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [reassigningId, setReassigningId] = useState<number | null>(null);
   const [changeRequests, setChangeRequests] = useState<BookingChangeRequest[]>([]);
   const [transferBooking, setTransferBooking] = useState<Booking | null>(null);
   const [transferSlots, setTransferSlots] = useState<Slot[]>([]);
@@ -36,12 +40,14 @@ export const BookingsPage = () => {
 
   const loadBookings = async () => {
     try {
-      const [response, requestResponse] = await Promise.all([
+      const [response, requestResponse, instructorList] = await Promise.all([
         bookingsApi.getAllBookings(),
         bookingsApi.getAdminChangeRequests(),
+        instructorsApi.list(),
       ]);
       setBookings(response.results);
       setChangeRequests(requestResponse.results);
+      setInstructors(instructorList);
     } catch (err) {
       setError(extractErrorMessage(err, 'Could not load bookings.'));
     }
@@ -119,6 +125,19 @@ export const BookingsPage = () => {
     }
   };
 
+  const handleReassign = async (booking: Booking, instructorId: number | null) => {
+    setError(null);
+    setReassigningId(booking.id);
+    try {
+      await bookingsApi.reassignInstructor(booking.id, instructorId);
+      await loadBookings();
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Could not reassign the instructor.'));
+    } finally {
+      setReassigningId(null);
+    }
+  };
+
   return (
     <div className="max-w-4xl">
       <h2 className="font-serif text-2xl text-[#2B241E] mb-2">Bookings</h2>
@@ -145,6 +164,19 @@ export const BookingsPage = () => {
                 <div className="text-[#786A58]">{booking.user_email}</div>
               </div>
               <div className="flex items-center gap-3">
+                <select
+                  value={booking.instructor_id ?? ''}
+                  onChange={(e) => void handleReassign(booking, e.target.value ? Number(e.target.value) : null)}
+                  disabled={reassigningId === booking.id}
+                  className="rounded-full border border-[#2B241E]/15 bg-white/60 px-2.5 py-1 text-xs text-[#2B241E] outline-none disabled:opacity-50"
+                >
+                  <option value="">No instructor</option>
+                  {instructors.map((instructor) => (
+                    <option key={instructor.id} value={instructor.id}>
+                      {instructor.username ?? instructor.email}
+                    </option>
+                  ))}
+                </select>
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${STATUS_STYLES[booking.status]}`}
                 >

@@ -9,6 +9,21 @@ export type Booking = {
   status: BookingStatus;
   attended_at: string | null;
   created_at: string;
+  instructor_id: number | null;
+  instructor_name: string | null;
+};
+
+// Assigned to the requesting instructor — includes customer contact
+// details, unlike the plain member-facing Booking type.
+export type InstructorBooking = {
+  id: number;
+  slot: Slot;
+  status: BookingStatus;
+  attended_at: string | null;
+  created_at: string;
+  customer_name: string;
+  customer_email: string;
+  customer_phone: string;
 };
 
 export type CreateBookingPayload = {

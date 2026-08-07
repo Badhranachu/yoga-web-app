@@ -50,6 +50,19 @@ class Booking(TimeStampedModel):
         related_name='bookings_deducted',
         help_text='Set when a session was deducted for this booking at creation time (create_booking).',
     )
+    instructor = models.ForeignKey(
+        'instructors.InstructorProfile',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='assigned_bookings',
+        help_text=(
+            'Auto-assigned at booking time to whichever instructor (not on leave for this '
+            'slot) currently has the fewest upcoming assigned bookings — see '
+            'services.assign_instructor. An admin can reassign it afterward; null means no '
+            'instructor was available to assign (e.g. zero instructor accounts exist).'
+        ),
+    )
 
     class Meta:
         db_table = 'bookings_booking'

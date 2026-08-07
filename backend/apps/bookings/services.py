@@ -29,10 +29,11 @@ attendance is purely a record of whether the member showed up.
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from django.utils import timezone
 
 from apps.classes_app.models import Slot
+from apps.instructors.models import InstructorProfile
 from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService
 from apps.payments.services import consume_slot_purchase, deduct_session, get_active_subscription, get_unused_slot_purchase
@@ -62,6 +63,40 @@ class BookingChangeRequestError(Exception):
 
 class RequestedSlotUnavailableError(BookingChangeRequestError):
     """Raised when a requested target slot is no longer available."""
+
+
+def assign_instructor(slot: Slot) -> InstructorProfile | None:
+    """Picks a free instructor for a newly-created booking on this slot:
+    among instructors NOT on leave for this slot/date (same exclusion
+    Slot.instructor_leave_count uses), the one with the fewest upcoming
+    BOOKED/ATTENDED assignments gets it — a simple round-robin that spreads
+    load without needing any admin setup. Returns None only if every
+    instructor is on leave here or no instructor accounts exist at all;
+    the caller leaves Booking.instructor null in that case rather than
+    failing the booking outright (capacity already guarantees a spot
+    exists — see Slot.capacity — this only decides who takes it).
+    """
+    from apps.instructors.leave_models import InstructorLeave
+
+    on_leave_ids = InstructorLeave.objects.filter(date=slot.date).filter(
+        Q(slots=slot) | Q(slots=None)
+    ).values_list('instructor_id', flat=True)
+
+    today = timezone.localdate()
+    candidates = (
+        InstructorProfile.objects.exclude(pk__in=on_leave_ids)
+        .annotate(
+            upcoming_count=Count(
+                'assigned_bookings',
+                filter=Q(
+                    assigned_bookings__status__in=[Booking.Status.BOOKED, Booking.Status.ATTENDED],
+                    assigned_bookings__slot__date__gte=today,
+                ),
+            ),
+        )
+        .order_by('upcoming_count', 'id')
+    )
+    return candidates.first()
 
 
 def _next_available_slot(slot: Slot) -> Slot | None:
@@ -372,6 +407,7 @@ def create_booking(user, slot_id: int) -> Booking:
         user=user,
         status=Booking.Status.BOOKED,
         subscription_deducted_from=subscription,
+        instructor=assign_instructor(slot),
     )
 
     if subscription is None:
@@ -391,6 +427,18 @@ def create_booking(user, slot_id: int) -> Booking:
     )
 
     return booking
+
+
+@transaction.atomic
+def reassign_instructor(booking: Booking, instructor: InstructorProfile | None) -> Booking:
+    """Admin action: overrides the auto-assigned instructor for a booking.
+    instructor=None explicitly clears the assignment (e.g. the auto-pick
+    was wrong and no replacement is decided yet).
+    """
+    locked = Booking.objects.select_for_update().get(pk=booking.pk)
+    locked.instructor = instructor
+    locked.save(update_fields=['instructor', 'updated_at'])
+    return locked
 
 
 @transaction.atomic

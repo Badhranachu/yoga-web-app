@@ -1,0 +1,93 @@
+# Production-only compose file for the Hostinger VPS. Local development
+# does not use Docker — it continues with `npm run dev` (frontend) and
+# `python manage.py runserver` (backend) against .env.local.
+#
+# Start / update with:
+#   docker compose --env-file .env.production up -d --build
+#   docker compose --env-file .env.production down
+
+services:
+  db:
+    image: mysql:8
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+    env_file:
+      - .env.production
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - yoga_net
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    # No `ports:` — MySQL is reachable only from other containers on
+    # yoga_net (backend connects via DB_HOST=db), never from the host.
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    ports:
+      - "127.0.0.1:8005:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - yoga_net
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://127.0.0.1:8000/admin/login/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3005:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - yoga_net
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+networks:
+  yoga_net:
+    driver: bridge
+
+volumes:
+  mysql_data:

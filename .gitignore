@@ -12,6 +12,10 @@ backend/db.sqlite3
 backend/staticfiles/
 backend/.env
 
+# Root-level env files (secrets — never commit)
+.env.local
+.env.production
+
 # Editors / OS
 .DS_Store
 Thumbs.db

@@ -1,4 +1,4 @@
-import { LayoutDashboard, UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, Ticket, UserCircle2 } from 'lucide-react';
 import { DashboardLayout } from '@/shared/layout/DashboardLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
@@ -6,6 +6,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 
 const instructorNavItems: SidebarNavItem[] = [
   { to: '/instructor', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/instructor/bookings', label: 'My Bookings', icon: Ticket },
   { to: '/instructor/profile', label: 'My Profile', icon: UserCircle2 },
 ];
 

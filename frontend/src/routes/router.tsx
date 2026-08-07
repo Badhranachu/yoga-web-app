@@ -10,11 +10,13 @@ import { RoleGuard } from '@/features/auth/components/RoleGuard';
 import { AdminLayout } from '@/features/dashboard-overview/components/AdminLayout';
 import { OverviewPage } from '@/features/dashboard-overview/routes/OverviewPage';
 import { ClassesPage } from '@/features/classes/routes/ClassesPage';
+import { InstitutionLeavePage } from '@/features/classes/routes/InstitutionLeavePage';
 import { MembersPage } from '@/features/members/routes/MembersPage';
 import { InstructorsPage } from '@/features/instructors/routes/InstructorsPage';
 import { InstructorLeavePage } from '@/features/instructors/routes/InstructorLeavePage';
 import { InstructorLayout } from '@/features/instructors/components/InstructorLayout';
 import { InstructorOverviewPage } from '@/features/instructors/routes/InstructorOverviewPage';
+import { InstructorBookingsPage } from '@/features/instructors/routes/InstructorBookingsPage';
 import { BookingsPage } from '@/features/bookings/routes/BookingsPage';
 import { BookSlotPage } from '@/features/bookings/routes/BookSlotPage';
 import { PaymentsPage } from '@/features/payments/routes/PaymentsPage';
@@ -51,6 +53,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <OverviewPage /> },
               { path: 'classes', element: <ClassesPage /> },
+              { path: 'institution-leave', element: <InstitutionLeavePage /> },
               { path: 'members', element: <MembersPage /> },
               { path: 'instructors', element: <InstructorsPage /> },
               { path: 'instructor-leave', element: <InstructorLeavePage /> },
@@ -89,6 +92,7 @@ export const router = createBrowserRouter([
             element: <InstructorLayout />,
             children: [
               { index: true, element: <InstructorOverviewPage /> },
+              { path: 'bookings', element: <InstructorBookingsPage /> },
               { path: 'profile', element: <ProfilePage /> },
               { path: 'profile/change-email', element: <ChangeEmailPage /> },
               { path: 'profile/change-password', element: <ChangePasswordPage /> },

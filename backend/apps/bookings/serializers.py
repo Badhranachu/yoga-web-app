@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from apps.classes_app.serializers import SlotSerializer
+from apps.instructors.models import InstructorProfile
 
 from .models import Booking, BookingChangeRequest
 
@@ -8,14 +9,50 @@ from .models import Booking, BookingChangeRequest
 class BookingSerializer(serializers.ModelSerializer):
     slot = SlotSerializer(read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
+    instructor_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Booking
         fields = [
             'id', 'slot', 'user_email', 'status',
-            'attended_at', 'created_at',
+            'attended_at', 'created_at', 'instructor_id', 'instructor_name',
         ]
         read_only_fields = fields
+
+    def get_instructor_name(self, obj: Booking) -> str | None:
+        if obj.instructor_id is None:
+            return None
+        return obj.instructor.username or obj.instructor.user.email
+
+
+class InstructorBookingSerializer(serializers.ModelSerializer):
+    """Bookings assigned to the requesting instructor — includes the
+    customer's contact details, since the instructor needs to know who
+    they're teaching (name, email, phone), unlike the plain member-facing
+    BookingSerializer.
+    """
+
+    slot = SlotSerializer(read_only=True)
+    customer_name = serializers.SerializerMethodField()
+    customer_email = serializers.EmailField(source='user.email', read_only=True)
+    customer_phone = serializers.CharField(source='user.phone_number', read_only=True)
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id', 'slot', 'status', 'attended_at', 'created_at',
+            'customer_name', 'customer_email', 'customer_phone',
+        ]
+        read_only_fields = fields
+
+    def get_customer_name(self, obj: Booking) -> str:
+        return obj.user.full_name or obj.user.email
+
+
+class ReassignInstructorSerializer(serializers.Serializer):
+    instructor_id = serializers.PrimaryKeyRelatedField(
+        source='instructor', queryset=InstructorProfile.objects.all(), allow_null=True,
+    )
 
 
 class CreateBookingSerializer(serializers.Serializer):

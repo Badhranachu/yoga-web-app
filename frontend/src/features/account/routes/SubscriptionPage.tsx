@@ -6,6 +6,7 @@ import { openRazorpayCheckout } from '@/features/payments/lib/razorpay';
 import { PaymentHistoryList } from '@/features/payments/components/PaymentHistoryList';
 import { SubscriptionStartDateDialog } from '@/features/payments/components/SubscriptionStartDateDialog';
 import { tokenStorage } from '@/features/auth/lib/tokenStorage';
+import { notifySessionBalanceChanged } from '@/shared/lib/sessionBalanceBus';
 import type {
   PaymentTransaction,
   PaymentType,
@@ -91,6 +92,7 @@ export const SubscriptionPage = () => {
               // be stale relative to what a fresh GET would show (e.g. a
               // renewal is scheduled, not immediately active).
               await loadAll();
+              notifySessionBalanceChanged();
               setSuccessMessage(`Payment successful. Receipt ${result.payment.receipt.receipt_number}.`);
             } catch (err) {
               setError(extractErrorMessage(err, 'Payment verification failed.'));

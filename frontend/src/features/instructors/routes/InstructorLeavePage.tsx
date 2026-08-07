@@ -75,18 +75,6 @@ const groupLeaves = (leaves: InstructorLeave[]): LeaveGroup[] => {
   return groups;
 };
 
-// Every date (inclusive) between from and to, as "YYYY-MM-DD" keys.
-const datesInRange = (from: string, to: string): string[] => {
-  const dates: string[] = [];
-  const cursor = new Date(`${from}T00:00:00`);
-  const end = new Date(`${to}T00:00:00`);
-  while (cursor <= end) {
-    dates.push(toLocalIso(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return dates;
-};
-
 // Admin marks an instructor unavailable. Two shapes:
 //   - One Day: a single date, either the whole day or specific slots on it.
 //   - Multiple Days: a from/to date range, always whole-day for every date

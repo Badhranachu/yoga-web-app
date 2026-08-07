@@ -4,7 +4,7 @@ from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 
-from apps.core.permissions import IsAdminRole
+from apps.core.permissions import IsAdminRole, IsInstructorRole
 from apps.core.responses import error_response, success_response
 from apps.classes_app.serializers import SlotSerializer
 
@@ -14,6 +14,8 @@ from .serializers import (
     BookingSerializer,
     CreateBookingChangeRequestSerializer,
     CreateBookingSerializer,
+    InstructorBookingSerializer,
+    ReassignInstructorSerializer,
 )
 from .services import (
     BookingStateError,
@@ -25,6 +27,7 @@ from .services import (
     create_transfer_request,
     create_booking,
     mark_attended,
+    reassign_instructor,
     reject_change_request,
     revert_attended,
 )
@@ -105,6 +108,45 @@ class AdminBookingListView(ListAPIView):
         if page is not None:
             return self.get_paginated_response(data)
         return success_response(data=data)
+
+
+class InstructorBookingListView(ListAPIView):
+    """GET the authenticated instructor's assigned bookings — includes
+    customer contact details (see InstructorBookingSerializer), since the
+    instructor needs to know who they're teaching.
+    """
+
+    serializer_class = InstructorBookingSerializer
+    permission_classes = [IsAuthenticated, IsInstructorRole]
+
+    def get_queryset(self):
+        return Booking.objects.filter(
+            instructor__user=self.request.user,
+        ).select_related('slot', 'user')
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        data = self.get_serializer(page if page is not None else queryset, many=True).data
+        if page is not None:
+            return self.get_paginated_response(data)
+        return success_response(data=data)
+
+
+class ReassignInstructorView(APIView):
+    """POST { instructor_id } (or null) — admin overrides the auto-assigned
+    instructor for a booking, e.g. to correct a bad auto-pick."""
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request, pk):
+        booking = get_object_or_404(Booking, pk=pk)
+        serializer = ReassignInstructorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        booking = reassign_instructor(booking, serializer.validated_data['instructor'])
+
+        return success_response(data=BookingSerializer(booking).data, message='Instructor reassigned.')
 
 
 class MarkAttendedView(APIView):

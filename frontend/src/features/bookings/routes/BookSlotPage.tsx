@@ -7,6 +7,7 @@ import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { classesApi } from '@/features/classes/api/classesApi';
 import type { Slot } from '@/features/classes/types';
 import { paymentsApi } from '@/features/payments/api/paymentsApi';
+import { notifySessionBalanceChanged } from '@/shared/lib/sessionBalanceBus';
 import { openRazorpayCheckout } from '@/features/payments/lib/razorpay';
 import { SubscriptionStartDateDialog } from '@/features/payments/components/SubscriptionStartDateDialog';
 import { tokenStorage } from '@/features/auth/lib/tokenStorage';
@@ -25,6 +26,12 @@ const toDateKey = (date: Date) =>
 
 const formatSelectedDate = (dateKey: string) =>
   new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+const formatBookedSlot = (dateKey: string, isoTime: string) => {
+  const date = new Date(`${dateKey}T00:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  const time = new Date(`1970-01-01T${isoTime}`).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return `${date} at ${time}`;
+};
 
 const QUICK_PICK_DAYS = 5;
 
@@ -128,15 +135,14 @@ export const BookSlotPage = () => {
     void loadSlotsForDate(date);
   };
 
-  // For today, don't offer slots that have already started (or are about
-  // to, within the same hour) — only ones starting from the next full hour
-  // onward are actually bookable in practice.
+  // For today, hide only slots that have fully elapsed — a slot that's
+  // already in progress (e.g. 2:00–3:00 PM while it's 2:28 PM) is still
+  // shown, since it hasn't ended yet.
   const upcomingSlots = (dateSlots ?? []).filter((slot) => {
     if (slot.date !== toDateKey(new Date())) return true;
     const now = new Date();
-    const cutoff = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours() + 1, 0, 0);
-    const slotStart = new Date(`${slot.date}T${slot.start_time}`);
-    return slotStart >= cutoff;
+    const slotEnd = new Date(`${slot.date}T${slot.end_time}`);
+    return slotEnd > now;
   });
 
   const visibleSlots = upcomingSlots.slice(0, visibleCount);
@@ -145,7 +151,8 @@ export const BookSlotPage = () => {
     setBookingSlotId(slot.id);
     try {
       await bookingsApi.createBooking({ slot_id: slot.id });
-      setSuccessMessage(`Booked ${slot.date} at ${slot.start_time.slice(0, 5)}.`);
+      setSuccessMessage(`Class booked for ${formatBookedSlot(slot.date, slot.start_time)}.`);
+      notifySessionBalanceChanged();
       await loadSlotsForDate(selectedDate);
     } catch (err) {
       const conflictSuggestion = getSuggestedSlotFromConflict(err);
