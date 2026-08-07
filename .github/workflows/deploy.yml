@@ -1,0 +1,75 @@
+name: Deploy to Production
+
+# Push-to-main only. Nothing else — no PRs, no tags, no manual dispatch —
+# triggers a production deployment.
+on:
+  push:
+    branches:
+      - main
+
+# Never let two deploys race each other on the same VPS. Queue instead of
+# cancelling: killing `docker compose up` mid-flight could leave the host
+# half-restarted, which is worse than a deploy simply waiting its turn.
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+# Default GITHUB_TOKEN permissions are read-only. This workflow only ever
+# connects out to the VPS over SSH — it never needs to write back to the
+# repository, open PRs, or touch any other GitHub API surface.
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy main to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      # Populates known_hosts from the real VPS host key via ssh-keyscan,
+      # rather than disabling verification with StrictHostKeyChecking=no.
+      # This is TOFU (trust-on-first-use) — see the deployment docs for
+      # the stronger alternative (pinning a known_hosts secret) if that
+      # matters for this environment.
+      - name: Add VPS host key to known_hosts
+        shell: bash
+        run: |
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Write deploy SSH key
+        shell: bash
+        run: |
+          umask 077
+          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > "$RUNNER_TEMP/deploy_key"
+          chmod 600 "$RUNNER_TEMP/deploy_key"
+
+      # All the real work — git pull, docker compose down/up, waiting for
+      # every container to report healthy, and printing diagnostics —
+      # lives in scripts/deploy.sh, versioned in this repo so `git pull`
+      # always brings the VPS's copy up to date with what's being
+      # deployed. BatchMode=yes makes SSH fail immediately instead of
+      # hanging on a prompt if auth or host verification ever goes wrong
+      # in a non-interactive run. This step's exit code is exactly
+      # deploy.sh's exit code, so an unhealthy/timed-out deployment fails
+      # this step, which fails the job.
+      - name: Deploy over SSH
+        shell: bash
+        run: |
+          ssh -i "$RUNNER_TEMP/deploy_key" \
+              -p "${{ secrets.VPS_PORT }}" \
+              -o BatchMode=yes \
+              "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+              'set -e
+               cd /var/www/harmony
+               git pull origin main
+               chmod +x scripts/deploy.sh
+               bash scripts/deploy.sh'
+
+      - name: Remove deploy SSH key
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/deploy_key"
