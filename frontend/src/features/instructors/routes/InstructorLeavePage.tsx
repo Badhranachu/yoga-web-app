@@ -423,8 +423,14 @@ export const InstructorLeavePage = () => {
                 setHistoryMonth(null);
                 return;
               }
-              const [year, month] = e.target.value.split('-').map(Number);
-              setHistoryMonth({ year: year!, month: month! });
+              // Convert each split segment individually (not
+              // `.split('-').map(Number)`, which types each destructured
+              // position as `number | undefined` under
+              // noUncheckedIndexedAccess) — this value always comes from
+              // one of this select's own <option value="{year}-{month}">
+              // entries below, so no NaN guard is needed here.
+              const [yearPart, monthPart] = e.target.value.split('-');
+              setHistoryMonth({ year: Number(yearPart), month: Number(monthPart) });
             }}
             className="w-full rounded-xl border border-[#2B241E]/15 bg-white/60 px-3 py-2 text-sm text-[#2B241E] outline-none"
           >

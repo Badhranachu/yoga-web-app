@@ -18,7 +18,23 @@ const toDateKey = (year: number, month: number, day: number) =>
   `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
 const parseDateKey = (key: string) => {
-  const [year, month, day] = key.split('-').map(Number);
+  // Convert each split segment individually rather than
+  // `.split('-').map(Number)` — destructuring positions out of a
+  // same-length-unknown array (what `.map(Number)` produces) types each
+  // one as `number | undefined` under noUncheckedIndexedAccess. Number()
+  // itself always returns `number` (never `undefined`), even when given
+  // an out-of-bounds `undefined` string segment (Number(undefined) is
+  // NaN) — so converting per-segment keeps everything typed as `number`
+  // while still catching a malformed key via the NaN check below.
+  const [yearPart, monthPart, dayPart] = key.split('-');
+  const year = Number(yearPart);
+  const month = Number(monthPart);
+  const day = Number(dayPart);
+
+  if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+    throw new Error(`Invalid date key "${key}" — expected "YYYY-MM-DD".`);
+  }
+
   return new Date(year, month - 1, day);
 };
 

@@ -12,7 +12,6 @@ import type { Booking, BookingChangeRequest, BookingStatus } from '../types';
 const STATUS_STYLES: Record<BookingStatus, string> = {
   booked: 'bg-[#D8B46A]/15 text-[#8a6f2e]',
   attended: 'bg-[#2B241E]/10 text-[#2B241E]',
-  cancelled: 'bg-[#786A58]/10 text-[#786A58]',
 };
 
 const formatDate = (isoDate: string) =>

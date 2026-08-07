@@ -102,7 +102,7 @@ export const SubscriptionPlanCard = ({ plan, onUpdated }: SubscriptionPlanCardPr
             <Button type="button" variant="primary" onClick={handleSave} disabled={isSaving}>
               {isSaving ? 'Saving…' : 'Save Plan'}
             </Button>
-            <Button type="button" variant="secondary" onClick={cancelEditing} disabled={isSaving}>
+            <Button type="button" variant="outline" onClick={cancelEditing} disabled={isSaving}>
               Cancel
             </Button>
           </div>

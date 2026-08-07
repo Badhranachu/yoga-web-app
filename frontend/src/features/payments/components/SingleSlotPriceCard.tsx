@@ -90,7 +90,7 @@ export const SingleSlotPriceCard = ({ price, onUpdated }: SingleSlotPriceCardPro
           <Button type="button" variant="primary" className="!py-3" onClick={handleSave} disabled={isSaving}>
             {isSaving ? 'Saving…' : 'Update'}
           </Button>
-          <Button type="button" variant="secondary" className="!py-3" onClick={cancelEditing} disabled={isSaving}>
+          <Button type="button" variant="outline" className="!py-3" onClick={cancelEditing} disabled={isSaving}>
             Cancel
           </Button>
         </div>
