@@ -41,7 +41,7 @@ export const Hero = () => {
           transition={{ ...luxuryTransition, delay: 0.4 }}
           className="text-5xl md:text-7xl lg:text-8xl font-serif text-[#2B241E] leading-[1.1] mb-8 max-w-4xl"
         >
-          Practice on your <span className="italic text-gradient-gold">schedule</span>,<br />
+          Practice on your 1 <span className="italic text-gradient-gold">schedule</span>,<br />
           guided by hands that<br />
           know the mat.
         </motion.h1>
