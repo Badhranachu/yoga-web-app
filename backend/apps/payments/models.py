@@ -61,6 +61,7 @@ class UserSubscription(TimeStampedModel):
     """
 
     class Status(models.TextChoices):
+        SCHEDULED = 'scheduled', 'Scheduled'
         ACTIVE = 'active', 'Active'
         EXPIRED = 'expired', 'Expired'
         EXHAUSTED = 'exhausted', 'Sessions Exhausted'
@@ -83,6 +84,10 @@ class UserSubscription(TimeStampedModel):
     price_paid = models.DecimalField(max_digits=10, decimal_places=2, help_text='Snapshot of plan.monthly_price at purchase/renewal time.')
     start_date = models.DateField()
     end_date = models.DateField()
+    low_usage_reminder_sent_at = models.DateTimeField(
+        null=True, blank=True,
+        help_text='Set once the 10-days-left low-usage reminder email has been sent for this cycle, so it never sends twice.',
+    )
 
     class Meta:
         db_table = 'payments_user_subscription'

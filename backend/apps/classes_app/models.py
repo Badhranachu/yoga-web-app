@@ -79,18 +79,22 @@ class Slot(TimeStampedModel):
     """A single bookable time-window, derived from TimetableConfig by
     services.generate_slots(). Never created directly by an admin.
 
-    is_booked exists now so the generation/regeneration logic (this phase)
-    already respects it and never deletes or mutates a booked slot, even
-    though nothing sets it True until the booking module (a later phase)
-    exists.
+    Capacity model: a slot has multiple bookable spots, not just one — one
+    per instructor account that exists (apps.instructors.InstructorProfile),
+    minus however many are on leave for this specific slot or its whole
+    date (apps.instructors.InstructorLeave). See capacity/booked_count/
+    availability below for how that plays out; this is computed live on
+    every read, never stored, since it must react immediately to admin
+    adding/removing instructors or leave without any slot regeneration.
 
-    leave: set when a Leave (apps.classes_app.services.apply_leave) blocks
-    this slot. Availability is derived from (is_booked, leave), never
-    stored as a separate redundant status field:
-      - leave is None, not booked      -> AVAILABLE
-      - leave is set,  not booked      -> UNAVAILABLE (blocked by leave)
-      - leave is None, booked          -> BOOKED
-      - leave is set,  booked          -> LEAVE_CONFLICT (needs admin attention)
+    leave: set when a studio-wide Leave (apps.classes_app.services.apply_leave)
+    blocks this slot entirely — distinct from per-instructor
+    InstructorLeave, which only reduces capacity by however many
+    instructors are unavailable rather than blocking the slot outright.
+      - leave is None, capacity > booked_count      -> AVAILABLE
+      - leave is set                                -> UNAVAILABLE (studio-wide, conflict if booked)
+      - leave is None, capacity <= 0                -> UNAVAILABLE (no instructor available)
+      - leave is None, capacity <= booked_count > 0  -> BOOKED (full)
     """
 
     class Availability(models.TextChoices):
@@ -103,7 +107,6 @@ class Slot(TimeStampedModel):
     start_time = models.TimeField()
     end_time = models.TimeField()
     weekday = models.PositiveSmallIntegerField(choices=TimetableConfig.Weekday.choices)
-    is_booked = models.BooleanField(default=False)
     source_config = models.ForeignKey(
         TimetableConfig,
         on_delete=models.SET_NULL,
@@ -117,7 +120,7 @@ class Slot(TimeStampedModel):
         null=True,
         blank=True,
         related_name='blocked_slots',
-        help_text='Set when this slot falls within an active leave period.',
+        help_text='Set when this slot falls within an active studio-wide leave period.',
     )
 
     class Meta:
@@ -128,7 +131,6 @@ class Slot(TimeStampedModel):
         ]
         indexes = [
             models.Index(fields=['date'], name='idx_slot_date'),
-            models.Index(fields=['date', 'is_booked'], name='idx_slot_date_booked'),
             models.Index(fields=['leave'], name='idx_slot_leave'),
         ]
 
@@ -136,12 +138,44 @@ class Slot(TimeStampedModel):
         return f'{self.date} {self.start_time}-{self.end_time}'
 
     @property
+    def total_instructor_count(self) -> int:
+        from apps.instructors.models import InstructorProfile
+        return InstructorProfile.objects.count()
+
+    @property
+    def instructor_leave_count(self) -> int:
+        """How many instructors are unavailable for this specific slot —
+        either via a leave naming this exact slot, or a whole-day leave
+        (no slots selected) for this slot's date.
+        """
+        from apps.instructors.leave_models import InstructorLeave
+
+        return InstructorLeave.objects.filter(date=self.date).filter(
+            models.Q(slots=self) | models.Q(slots=None)
+        ).values('instructor_id').distinct().count()
+
+    @property
+    def capacity(self) -> int:
+        return max(0, self.total_instructor_count - self.instructor_leave_count)
+
+    @property
+    def booked_count(self) -> int:
+        return self.bookings.filter(status__in=['booked', 'attended']).count()
+
+    @property
+    def is_booked(self) -> bool:
+        """True once every spot is taken. Kept as a convenience property
+        (no longer a stored field) for any code that only cares about
+        full-vs-not-full rather than the exact count."""
+        return self.capacity <= 0 or self.booked_count >= self.capacity
+
+    @property
     def availability(self) -> str:
-        if self.leave_id and self.is_booked:
-            return self.Availability.LEAVE_CONFLICT
         if self.leave_id:
+            return self.Availability.LEAVE_CONFLICT if self.booked_count > 0 else self.Availability.UNAVAILABLE
+        if self.capacity <= 0:
             return self.Availability.UNAVAILABLE
-        if self.is_booked:
+        if self.booked_count >= self.capacity:
             return self.Availability.BOOKED
         return self.Availability.AVAILABLE
 

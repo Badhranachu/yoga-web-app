@@ -7,8 +7,10 @@ import type {
   LoginPayload,
   LoginResponse,
   RegisterPayload,
+  RequestEmailChangePayload,
   ResetPasswordPayload,
   User,
+  VerifyEmailChangePayload,
 } from '../types';
 
 // Thin wrapper around the accounts endpoints (backend/apps/accounts).
@@ -39,13 +41,24 @@ export const authApi = {
     return data.data;
   },
 
-  updateProfile: async (payload: Partial<Pick<User, 'first_name' | 'last_name' | 'phone_number'>>): Promise<User> => {
+  updateProfile: async (
+    payload: Partial<Pick<User, 'first_name' | 'last_name' | 'phone_number' | 'address' | 'age'>>,
+  ): Promise<User> => {
     const { data } = await apiClient.patch<ApiSuccess<User>>('/auth/profile/', payload);
     return data.data;
   },
 
   changePassword: async (payload: ChangePasswordPayload): Promise<void> => {
     await apiClient.post('/auth/change-password/', payload);
+  },
+
+  requestEmailChange: async (payload: RequestEmailChangePayload): Promise<void> => {
+    await apiClient.post('/auth/change-email/request/', payload);
+  },
+
+  verifyEmailChange: async (payload: VerifyEmailChangePayload): Promise<User> => {
+    const { data } = await apiClient.post<ApiSuccess<User>>('/auth/change-email/verify/', payload);
+    return data.data;
   },
 
   forgotPassword: async (payload: ForgotPasswordPayload): Promise<void> => {

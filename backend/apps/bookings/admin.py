@@ -1,7 +1,5 @@
 from django.contrib import admin
 
-from apps.classes_app.models import Slot
-
 from .models import Booking, BookingChangeRequest
 
 
@@ -18,21 +16,11 @@ class BookingAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         return False
 
-    def delete_model(self, request, obj):
-        # Deleting a Booking row directly (admin cleanup) must free its slot
-        # — otherwise the Slot is left permanently stuck at is_booked=True
-        # with nothing to ever clear it, since no other code path un-books
-        # a slot except through the normal reschedule/transfer flow. No
-        # session is restored here, matching the no-refund business rule.
-        slot = obj.slot
-        super().delete_model(request, obj)
-        slot.is_booked = False
-        slot.save(update_fields=['is_booked', 'updated_at'])
-
-    def delete_queryset(self, request, queryset):
-        slots = list(queryset.values_list('slot', flat=True))
-        super().delete_queryset(request, queryset)
-        Slot.objects.filter(pk__in=slots).update(is_booked=False)
+    # No delete_model/delete_queryset override needed anymore: slot
+    # occupancy (booked_count) is computed live from Booking rows, so
+    # deleting a Booking here automatically frees its spot — nothing to
+    # separately reset. No session is restored, matching the no-refund
+    # business rule.
 
 
 @admin.register(BookingChangeRequest)

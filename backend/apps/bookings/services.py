@@ -1,21 +1,20 @@
 """
 Booking creation and attendance management.
 
+Capacity model: a slot has multiple bookable spots — one per instructor
+account, minus however many are on leave for that specific slot/date (see
+apps.classes_app.models.Slot.capacity / booked_count). "Full" now means
+booked_count >= capacity, not a boolean is_booked flag.
+
 Race-condition story ("prevent race conditions" / "use database locking"):
 Two users could POST a booking for the same slot at virtually the same
-instant. Without locking, both requests could read is_booked=False,
-both pass the check, and both attempt to create a Booking — a classic
-TOCTOU (time-of-check to time-of-use) race.
-
-create_booking closes this with two independent layers:
-  1. select_for_update() takes a row-level lock on the target Slot inside
-     an atomic transaction. Whichever request's SELECT ... FOR UPDATE
-     commits first holds the lock; the second request's SELECT blocks
-     until the first transaction commits or rolls back, then re-reads
-     the now-committed state and correctly sees is_booked=True.
-  2. Booking.slot is a OneToOneField (DB-level UNIQUE constraint) as a
-     hard backstop — even if the row lock were somehow bypassed, the
-     database itself refuses a second Booking row for the same slot_id.
+instant, both reading booked_count < capacity as true, and both attempt to
+create a Booking — a classic TOCTOU (time-of-check to time-of-use) race.
+create_booking closes this with select_for_update(): it takes a row-level
+lock on the target Slot inside an atomic transaction. Whichever request's
+SELECT ... FOR UPDATE commits first holds the lock; the second request's
+SELECT blocks until the first transaction commits, then re-reads the
+now-committed booking count before deciding whether a spot remains.
 
 Session deduction happens at booking time, not at attendance (business
 rule): if the booking user has a usable subscription, create_booking
@@ -66,7 +65,8 @@ class RequestedSlotUnavailableError(BookingChangeRequestError):
 
 
 def _next_available_slot(slot: Slot) -> Slot | None:
-    """Find and lock the next chronological available slot.
+    """Find and lock the next chronological available slot (one with an
+    open spot: booked_count < capacity).
 
     The ordering is explicit and stable (date, start time, id), so every
     conflicted request receives the same suggestion for the same database
@@ -74,17 +74,19 @@ def _next_available_slot(slot: Slot) -> Slot | None:
     accepting the suggestion must issue a normal booking request.
     """
     today = timezone.localdate()
-    return (
+    candidates = (
         Slot.objects.select_for_update()
         .filter(
             Q(date__gt=slot.date) | Q(date=slot.date, start_time__gt=slot.start_time),
             date__gte=today,
-            is_booked=False,
             leave__isnull=True,
         )
         .order_by('date', 'start_time', 'id')
-        .first()
     )
+    for candidate in candidates:
+        if candidate.capacity > 0 and candidate.booked_count < candidate.capacity:
+            return candidate
+    return None
 
 
 def _validate_target_slot(slot: Slot, current_slot_id: int) -> None:
@@ -94,7 +96,7 @@ def _validate_target_slot(slot: Slot, current_slot_id: int) -> None:
         raise RequestedSlotUnavailableError('The requested slot is in the past.')
     if slot.leave_id:
         raise RequestedSlotUnavailableError('The requested slot is unavailable due to studio leave.')
-    if slot.is_booked:
+    if slot.capacity <= 0 or slot.booked_count >= slot.capacity:
         raise RequestedSlotUnavailableError('The requested slot has already been booked.')
 
 
@@ -249,10 +251,6 @@ def approve_change_request(request_id: int, actor) -> BookingChangeRequest:
         raise RequestedSlotUnavailableError('The requested slot no longer exists.') from exc
     _validate_target_slot(target_slot, old_slot.pk)
 
-    old_slot.is_booked = False
-    old_slot.save(update_fields=['is_booked', 'updated_at'])
-    target_slot.is_booked = True
-    target_slot.save(update_fields=['is_booked', 'updated_at'])
     booking.slot = target_slot
     booking.save(update_fields=['slot', 'updated_at'])
 
@@ -327,9 +325,13 @@ def reject_change_request(request_id: int, actor, reason: str = '') -> BookingCh
 
 @transaction.atomic
 def create_booking(user, slot_id: int) -> Booking:
-    """Reserves a slot for a user. Locks the Slot row for the duration of
-    this transaction so a concurrent request for the same slot_id blocks
-    until this one finishes, then correctly sees the slot as unavailable.
+    """Reserves one spot in a slot for a user. Locks the Slot row for the
+    duration of this transaction so a concurrent request for the same
+    slot_id blocks until this one finishes, then correctly re-reads the
+    committed booking count before deciding whether a spot remains.
+    A slot has capacity spots (one per instructor, minus any on leave for
+    this slot/date — see Slot.capacity); this succeeds as long as
+    booked_count < capacity, not just for the very first booking.
 
     If the user has a usable subscription (active, unexpired, sessions
     remaining), one session is deducted immediately — booking is the
@@ -352,15 +354,12 @@ def create_booking(user, slot_id: int) -> Booking:
     if slot.leave_id:
         raise SlotUnavailableError('This slot is unavailable due to studio leave.')
 
-    if slot.is_booked:
-        raise SlotConflictError(
-            'This slot has already been booked.',
-            suggested_slot=_next_available_slot(slot),
-        )
+    if slot.capacity <= 0:
+        raise SlotUnavailableError('This slot has no instructor available.')
 
-    if Booking.objects.filter(slot=slot, status=Booking.Status.BOOKED).exists():
+    if slot.booked_count >= slot.capacity:
         raise SlotConflictError(
-            'This slot already has an active booking.',
+            'This slot is fully booked.',
             suggested_slot=_next_available_slot(slot),
         )
 
@@ -379,9 +378,6 @@ def create_booking(user, slot_id: int) -> Booking:
         credit = get_unused_slot_purchase(user)
         if credit is not None:
             consume_slot_purchase(credit, booking)
-
-    slot.is_booked = True
-    slot.save(update_fields=['is_booked', 'updated_at'])
 
     NotificationService.create(
         user,

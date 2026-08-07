@@ -7,7 +7,10 @@ from .models import User
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """Read/update serializer for the authenticated user's own profile."""
+    """Read/update serializer for the authenticated user's own profile.
+    Email is deliberately read-only here — it can only change via the
+    OTP-verified RequestEmailChangeView / VerifyEmailChangeView flow.
+    """
 
     full_name = serializers.CharField(read_only=True)
 
@@ -15,9 +18,14 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name', 'full_name',
-            'phone_number', 'role', 'is_active', 'created_at',
+            'phone_number', 'address', 'age', 'role', 'is_active', 'created_at',
         ]
         read_only_fields = ['id', 'email', 'role', 'is_active', 'created_at']
+
+    def validate_age(self, value):
+        if value is not None and not (0 < value < 130):
+            raise serializers.ValidationError('Enter a valid age.')
+        return value
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -89,6 +97,14 @@ class ChangePasswordSerializer(serializers.Serializer):
         except DjangoValidationError as exc:
             raise serializers.ValidationError(list(exc.messages))
         return value
+
+
+class RequestEmailChangeSerializer(serializers.Serializer):
+    new_email = serializers.EmailField()
+
+
+class VerifyEmailChangeSerializer(serializers.Serializer):
+    otp_code = serializers.CharField(max_length=6, min_length=6)
 
 
 class ForgotPasswordSerializer(serializers.Serializer):

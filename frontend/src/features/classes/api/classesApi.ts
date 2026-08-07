@@ -59,6 +59,22 @@ export const classesApi = {
     return data;
   },
 
+  // Walks every page for the given filters and returns the full slot list.
+  // The list endpoint paginates (PAGE_SIZE=20 server-side), which is fine
+  // for the admin timetable's single-page view but not for a date-range
+  // fetch spanning up to two months, which can easily exceed one page.
+  getAllSlots: async (params: Omit<SlotListParams, 'page'> = {}): Promise<Slot[]> => {
+    const results: Slot[] = [];
+    let page = 1;
+    while (true) {
+      const { data } = await apiClient.get<PaginatedResponse<Slot>>('/classes/slots/', { params: { ...params, page } });
+      results.push(...data.results);
+      if (!data.next) break;
+      page += 1;
+    }
+    return results;
+  },
+
   getLeaves: async (params: LeaveListParams = {}): Promise<PaginatedResponse<Leave>> => {
     const { data } = await apiClient.get<PaginatedResponse<Leave>>('/classes/leaves/', { params });
     return data;

@@ -1,5 +1,5 @@
-import { Bell } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Bell, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { notificationsApi } from '../api/notificationsApi';
 import type { Notification } from '../types';
@@ -9,6 +9,7 @@ const formatDate = (value: string) =>
 
 export const NotificationBell = () => {
   const navigate = useNavigate();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -40,6 +41,17 @@ export const NotificationBell = () => {
     if (isOpen) void loadNotifications();
   }, [isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isOpen]);
+
   const handleNotificationClick = async (notification: Notification) => {
     if (!notification.is_read) {
       await notificationsApi.markRead(notification.id);
@@ -54,12 +66,12 @@ export const NotificationBell = () => {
 
   const handleMarkAllRead = async () => {
     await notificationsApi.markAllRead();
-    setNotifications((current) => current.map((notification) => ({ ...notification, is_read: true })));
+    setNotifications([]);
     setUnreadCount(0);
   };
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button type="button" onClick={() => setIsOpen((open) => !open)} aria-label="Notifications" aria-expanded={isOpen} className="relative text-[#786A58] hover:text-[#D8B46A] transition-colors">
         <Bell size={20} strokeWidth={1.5} />
         {unreadCount > 0 && (
@@ -73,11 +85,16 @@ export const NotificationBell = () => {
         <div className="absolute right-0 top-8 z-50 w-80 rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] p-3 shadow-xl">
           <div className="flex items-center justify-between px-2 pb-2">
             <h2 className="font-serif text-lg text-[#2B241E]">Notifications</h2>
-            {unreadCount > 0 && (
-              <button type="button" onClick={() => void handleMarkAllRead()} className="text-[10px] uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A]">
-                Mark All Read
+            <div className="flex items-center gap-3">
+              {unreadCount > 0 && (
+                <button type="button" onClick={() => void handleMarkAllRead()} className="text-[10px] uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A]">
+                  Mark All Read
+                </button>
+              )}
+              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close notifications" className="text-[#786A58] hover:text-[#2B241E] transition-colors">
+                <X size={16} strokeWidth={1.5} />
               </button>
-            )}
+            </div>
           </div>
           <div className="max-h-80 space-y-1 overflow-y-auto">
             {notifications.length === 0 && <p className="px-2 py-4 text-sm text-[#786A58]">No notifications.</p>}

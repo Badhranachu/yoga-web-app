@@ -4,11 +4,13 @@ import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { paymentsApi } from '@/features/payments/api/paymentsApi';
 import { openRazorpayCheckout } from '@/features/payments/lib/razorpay';
 import { PaymentHistoryList } from '@/features/payments/components/PaymentHistoryList';
+import { SubscriptionStartDateDialog } from '@/features/payments/components/SubscriptionStartDateDialog';
 import { tokenStorage } from '@/features/auth/lib/tokenStorage';
 import type {
   PaymentTransaction,
   PaymentType,
   SubscriptionPlan,
+  SubscriptionStartDateOptions,
   UserSubscription,
   VerifyPaymentAction,
 } from '@/features/payments/types';
@@ -28,6 +30,8 @@ export const SubscriptionPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startDateOptions, setStartDateOptions] = useState<SubscriptionStartDateOptions | null>(null);
+  const [pendingAction, setPendingAction] = useState<VerifyPaymentAction | null>(null);
 
   const loadAll = async () => {
     try {
@@ -53,7 +57,12 @@ export const SubscriptionPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const payViaRazorpay = async (paymentType: PaymentType, action: VerifyPaymentAction, description: string) => {
+  const payViaRazorpay = async (
+    paymentType: PaymentType,
+    action: VerifyPaymentAction,
+    description: string,
+    startDate?: string,
+  ) => {
     setError(null);
     setSuccessMessage(null);
     setIsSubmitting(true);
@@ -75,9 +84,13 @@ export const SubscriptionPage = () => {
                 razorpay_order_id: checkoutResponse.razorpay_order_id,
                 razorpay_payment_id: checkoutResponse.razorpay_payment_id,
                 razorpay_signature: checkoutResponse.razorpay_signature,
+                start_date: startDate,
               });
-              setSubscription(result.subscription ?? subscription);
-              setPayments((current) => [result.payment, ...current]);
+              // Reload everything from the server rather than patching local
+              // state — the subscription/payments the API returns here can
+              // be stale relative to what a fresh GET would show (e.g. a
+              // renewal is scheduled, not immediately active).
+              await loadAll();
               setSuccessMessage(`Payment successful. Receipt ${result.payment.receipt.receipt_number}.`);
             } catch (err) {
               setError(extractErrorMessage(err, 'Payment verification failed.'));
@@ -93,8 +106,29 @@ export const SubscriptionPage = () => {
     }
   };
 
-  const handlePurchase = () => payViaRazorpay('subscription', 'purchase', 'Monthly Subscription');
-  const handleRenew = () => payViaRazorpay('subscription', 'renew', 'Subscription Renewal');
+  const openStartDateDialog = async (action: VerifyPaymentAction) => {
+    setError(null);
+    setSuccessMessage(null);
+    try {
+      const options = await paymentsApi.getSubscriptionStartDateOptions();
+      setPendingAction(action);
+      setStartDateOptions(options);
+    } catch (err) {
+      setError(extractErrorMessage(err, 'Could not load available start dates.'));
+    }
+  };
+
+  const handlePurchase = () => openStartDateDialog('purchase');
+  const handleRenew = () => openStartDateDialog('renew');
+
+  const handleConfirmStartDate = (startDate: string) => {
+    if (!pendingAction) return;
+    const action = pendingAction;
+    setStartDateOptions(null);
+    setPendingAction(null);
+    const description = action === 'renew' ? 'Subscription Renewal' : 'Monthly Subscription';
+    void payViaRazorpay('subscription', action, description, startDate);
+  };
 
   if (isLoading) {
     return <p className="text-sm text-[#786A58]">Loading…</p>;
@@ -173,6 +207,18 @@ export const SubscriptionPage = () => {
         <h3 className="font-serif text-xl text-[#2B241E] mb-3">Recent Payments</h3>
         <PaymentHistoryList payments={payments.slice(0, 5)} />
       </div>
+
+      {startDateOptions && (
+        <SubscriptionStartDateDialog
+          options={startDateOptions}
+          isSubmitting={isSubmitting}
+          onConfirm={handleConfirmStartDate}
+          onCancel={() => {
+            setStartDateOptions(null);
+            setPendingAction(null);
+          }}
+        />
+      )}
     </div>
   );
 };

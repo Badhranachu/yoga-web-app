@@ -9,6 +9,7 @@ import type {
   SingleSlotPrice,
   SubscriptionPlan,
   SubscriptionPlanUpdatePayload,
+  SubscriptionStartDateOptions,
   UserSubscription,
   VerifyPaymentPayload,
 } from '../types';
@@ -48,6 +49,13 @@ export const paymentsApi = {
   getMySubscriptionHistoryStatus: async (): Promise<{ has_previous_subscription: boolean }> => {
     const { data } = await apiClient.get<ApiSuccess<{ has_previous_subscription: boolean }>>(
       '/payments/subscriptions/me/history-status/',
+    );
+    return data.data;
+  },
+
+  getSubscriptionStartDateOptions: async (): Promise<SubscriptionStartDateOptions> => {
+    const { data } = await apiClient.get<ApiSuccess<SubscriptionStartDateOptions>>(
+      '/payments/subscriptions/start-date-options/',
     );
     return data.data;
   },

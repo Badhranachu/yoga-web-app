@@ -20,6 +20,7 @@ from decimal import Decimal
 
 import razorpay
 from django.conf import settings
+from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
@@ -31,6 +32,8 @@ from apps.notifications.services import NotificationService
 from .models import PaymentTransaction, Receipt, SlotPurchase, SubscriptionPlan, UserSubscription
 
 SUBSCRIPTION_CYCLE_DAYS = 30
+LOW_USAGE_REMINDER_DAYS_BEFORE_END = 10
+LOW_USAGE_REMINDER_THRESHOLD = 20
 
 
 class NoActivePlanError(Exception):
@@ -43,6 +46,49 @@ class SubscriptionStateError(Exception):
 
 class PaymentVerificationError(Exception):
     """Raised when a Razorpay checkout signature fails verification."""
+
+
+class InvalidStartDateError(Exception):
+    """Raised when a requested subscription start/activation date falls outside the allowed window."""
+
+
+def _last_day_of_next_month(today) -> 'timezone.datetime.date':
+    # First day of the month after next, minus one day, is the last day of
+    # next month — avoids hand-rolling variable month lengths.
+    if today.month >= 11:
+        first_of_month_after_next = today.replace(year=today.year + 1, month=(today.month + 2) - 12, day=1)
+    else:
+        first_of_month_after_next = today.replace(month=today.month + 2, day=1)
+    return first_of_month_after_next - timedelta(days=1)
+
+
+def get_latest_non_scheduled_subscription(user) -> UserSubscription | None:
+    """The user's most recent subscription row that isn't itself a pending
+    SCHEDULED renewal — i.e. the one whose end_date the renewal start-date
+    window is computed from. Used by the renewal UI to show "Current
+    Subscription Ends On" before the member picks an activation date.
+    """
+    return (
+        UserSubscription.objects.filter(user=user)
+        .exclude(status=UserSubscription.Status.SCHEDULED)
+        .order_by('-end_date')
+        .first()
+    )
+
+
+def get_purchase_start_date_window() -> dict:
+    """The allowed start-date range for a brand-new purchase: today through
+    the last day of next month."""
+    today = timezone.localdate()
+    return {'earliest': today, 'latest': _last_day_of_next_month(today)}
+
+
+def get_renewal_start_date_window(current_subscription: UserSubscription) -> dict:
+    """The allowed activation-date range for a renewal: the day after the
+    current subscription's end date, through the last day of next month."""
+    today = timezone.localdate()
+    earliest = current_subscription.end_date + timedelta(days=1)
+    return {'earliest': earliest, 'latest': _last_day_of_next_month(today)}
 
 
 def get_razorpay_client() -> razorpay.Client:
@@ -200,15 +246,25 @@ def _sync_status(subscription: UserSubscription) -> None:
 
 
 @transaction.atomic
-def purchase_subscription(user, *, provider: str = '', provider_transaction_id: str = '', metadata: dict | None = None) -> UserSubscription:
+def purchase_subscription(
+    user,
+    *,
+    start_date=None,
+    provider: str = '',
+    provider_transaction_id: str = '',
+    metadata: dict | None = None,
+) -> UserSubscription:
     """Starts a brand-new subscription cycle for a user who has no
-    currently-active one. If the user already has an ACTIVE, usable
-    subscription, this raises rather than silently stacking a second one
-    — renew_subscription is the correct call for extending an existing one.
+    currently-active one, activating on start_date (defaults to today).
+    start_date must be within [today, last day of next month]. If the
+    chosen date is today, the cycle is ACTIVE immediately; otherwise it's
+    created SCHEDULED and activate_due_subscriptions() flips it to ACTIVE
+    once that date arrives.
+
+    If the user already has an ACTIVE, usable subscription, this raises
+    rather than silently stacking a second one — renew_subscription is the
+    correct call for scheduling a subsequent cycle in that case.
     """
-    # Serialize purchase/renewal decisions per user. A user row is always
-    # present, so this lock prevents two concurrent requests from both
-    # observing "no active subscription" and creating duplicate active rows.
     locked_user = user.__class__.objects.select_for_update().get(pk=user.pk)
     existing = get_active_subscription(locked_user)
     if existing is not None:
@@ -216,16 +272,23 @@ def purchase_subscription(user, *, provider: str = '', provider_transaction_id: 
 
     plan = get_active_plan()
     today = timezone.localdate()
+    window = get_purchase_start_date_window()
+    start_date = start_date or today
+    if not (window['earliest'] <= start_date <= window['latest']):
+        raise InvalidStartDateError(
+            f"Start date must be between {window['earliest'].isoformat()} and {window['latest'].isoformat()}."
+        )
 
+    status = UserSubscription.Status.ACTIVE if start_date <= today else UserSubscription.Status.SCHEDULED
     subscription = UserSubscription.objects.create(
         user=locked_user,
         plan=plan,
-        status=UserSubscription.Status.ACTIVE,
+        status=status,
         sessions_included=plan.included_sessions,
         sessions_remaining=plan.included_sessions,
         price_paid=plan.monthly_price,
-        start_date=today,
-        end_date=today + timedelta(days=SUBSCRIPTION_CYCLE_DAYS),
+        start_date=start_date,
+        end_date=start_date + timedelta(days=SUBSCRIPTION_CYCLE_DAYS),
     )
     record_successful_payment(
         locked_user,
@@ -236,49 +299,79 @@ def purchase_subscription(user, *, provider: str = '', provider_transaction_id: 
         provider_transaction_id=provider_transaction_id,
         metadata=metadata,
     )
-    NotificationService.create(
-        locked_user,
-        Notification.NotificationType.SUBSCRIPTION_PURCHASED,
-        'Subscription Purchased',
-        f'Your subscription is active with {subscription.sessions_included} sessions.',
-        related_type='subscription',
-        related_id=subscription.pk,
-        action_url='/account/subscription',
-        dedupe_key=f'subscription-purchased:{subscription.pk}',
-    )
+    if status == UserSubscription.Status.ACTIVE:
+        NotificationService.create(
+            locked_user,
+            Notification.NotificationType.SUBSCRIPTION_PURCHASED,
+            'Subscription Purchased',
+            f'Your subscription is active with {subscription.sessions_included} sessions.',
+            related_type='subscription',
+            related_id=subscription.pk,
+            action_url='/account/subscription',
+            dedupe_key=f'subscription-purchased:{subscription.pk}',
+        )
+    else:
+        NotificationService.create(
+            locked_user,
+            Notification.NotificationType.SUBSCRIPTION_PURCHASED,
+            'Subscription Scheduled',
+            f'Your subscription is paid for and will activate on {start_date.strftime("%d %b %Y")}.',
+            related_type='subscription',
+            related_id=subscription.pk,
+            action_url='/account/subscription',
+            dedupe_key=f'subscription-scheduled:{subscription.pk}',
+        )
     return subscription
 
 
 @transaction.atomic
-def renew_subscription(user, *, provider: str = '', provider_transaction_id: str = '', metadata: dict | None = None) -> UserSubscription:
-    """Renews the user's subscription — usable whether the previous cycle
-    is still active, expired, or exhausted (all three are legitimate
-    reasons to renew). Always starts a fresh cycle at the plan's current
-    price/session count rather than carrying over unused sessions, and
-    marks any prior ACTIVE row as no longer active first.
+def renew_subscription(
+    user,
+    *,
+    start_date,
+    provider: str = '',
+    provider_transaction_id: str = '',
+    metadata: dict | None = None,
+) -> UserSubscription:
+    """Schedules the user's next subscription cycle to activate on
+    start_date, which must fall within [current subscription's end_date +
+    1 day, last day of next month]. The current subscription (if any) is
+    left completely untouched and keeps working normally — the new cycle
+    is a separate row that stays SCHEDULED until its start_date arrives
+    (see activate_due_subscriptions), at which point it becomes ACTIVE and
+    the old one has already expired naturally by date.
+
+    Requires an existing (not necessarily still-usable) subscription to
+    renew from — a user with no subscription history at all should call
+    purchase_subscription instead.
     """
     locked_user = user.__class__.objects.select_for_update().get(pk=user.pk)
     plan = get_active_plan()
-    today = timezone.localdate()
 
-    previous = (
-        UserSubscription.objects.filter(user=locked_user, status=UserSubscription.Status.ACTIVE)
-        .order_by('-created_at')
+    current = (
+        UserSubscription.objects.filter(user=locked_user)
+        .exclude(status=UserSubscription.Status.SCHEDULED)
+        .order_by('-end_date')
         .first()
     )
-    if previous is not None:
-        previous.status = UserSubscription.Status.CANCELLED
-        previous.save(update_fields=['status', 'updated_at'])
+    if current is None:
+        raise SubscriptionStateError('No existing subscription to renew. Use purchase instead.')
+
+    window = get_renewal_start_date_window(current)
+    if not (window['earliest'] <= start_date <= window['latest']):
+        raise InvalidStartDateError(
+            f"Activation date must be between {window['earliest'].isoformat()} and {window['latest'].isoformat()}."
+        )
 
     subscription = UserSubscription.objects.create(
         user=locked_user,
         plan=plan,
-        status=UserSubscription.Status.ACTIVE,
+        status=UserSubscription.Status.SCHEDULED,
         sessions_included=plan.included_sessions,
         sessions_remaining=plan.included_sessions,
         price_paid=plan.monthly_price,
-        start_date=today,
-        end_date=today + timedelta(days=SUBSCRIPTION_CYCLE_DAYS),
+        start_date=start_date,
+        end_date=start_date + timedelta(days=SUBSCRIPTION_CYCLE_DAYS),
     )
     record_successful_payment(
         locked_user,
@@ -293,13 +386,26 @@ def renew_subscription(user, *, provider: str = '', provider_transaction_id: str
         locked_user,
         Notification.NotificationType.SUBSCRIPTION_RENEWED,
         'Subscription Renewed',
-        f'Your subscription was renewed with {subscription.sessions_included} sessions.',
+        f'Your renewed subscription will activate on {start_date.strftime("%d %b %Y")}.',
         related_type='subscription',
         related_id=subscription.pk,
         action_url='/account/subscription',
         dedupe_key=f'subscription-renewed:{subscription.pk}',
     )
     return subscription
+
+
+def activate_due_subscriptions() -> dict:
+    """Flips any SCHEDULED subscription whose start_date has arrived over
+    to ACTIVE. Intended to run daily (see management command), alongside
+    generate_slots and send_low_usage_reminders.
+    """
+    today = timezone.localdate()
+    updated = UserSubscription.objects.filter(
+        status=UserSubscription.Status.SCHEDULED,
+        start_date__lte=today,
+    ).update(status=UserSubscription.Status.ACTIVE)
+    return {'activated': updated}
 
 
 @transaction.atomic
@@ -384,3 +490,64 @@ def consume_slot_purchase(purchase: SlotPurchase, booking) -> SlotPurchase:
     locked.used_for_booking = booking
     locked.save(update_fields=['used_at', 'used_for_booking', 'updated_at'])
     return locked
+
+
+def send_low_usage_reminders() -> dict:
+    """Emails members whose active subscription has exactly
+    LOW_USAGE_REMINDER_DAYS_BEFORE_END days left and who have used fewer
+    than LOW_USAGE_REMINDER_THRESHOLD sessions so far this cycle. Fires
+    once per cycle (low_usage_reminder_sent_at guards against re-sending on
+    a later run the same day, or if the command is run more than once).
+
+    Intended to run once daily (see apps.payments.management.commands.
+    send_low_usage_reminders) alongside the existing generate_slots cron.
+    """
+    target_date = timezone.localdate() + timedelta(days=LOW_USAGE_REMINDER_DAYS_BEFORE_END)
+    candidates = UserSubscription.objects.filter(
+        status=UserSubscription.Status.ACTIVE,
+        end_date=target_date,
+        low_usage_reminder_sent_at__isnull=True,
+    ).select_related('user')
+
+    sent = 0
+    for subscription in candidates:
+        used = subscription.sessions_included - subscription.sessions_remaining
+        if used >= LOW_USAGE_REMINDER_THRESHOLD:
+            continue
+
+        user = subscription.user
+        try:
+            send_mail(
+                subject='Your EKAM Yoga sessions are about to expire',
+                message=(
+                    f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
+                    f"Your subscription cycle ends in {LOW_USAGE_REMINDER_DAYS_BEFORE_END} days "
+                    f'({subscription.end_date.strftime("%d %b %Y")}), and you have used only {used} of '
+                    f'{subscription.sessions_included} sessions so far.\n\n'
+                    f'Unused sessions do not carry over — book a class soon to make the most of your membership.\n\n'
+                    "See you on the mat!"
+                ),
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception:
+            continue
+
+        subscription.low_usage_reminder_sent_at = timezone.now()
+        subscription.save(update_fields=['low_usage_reminder_sent_at', 'updated_at'])
+
+        NotificationService.create(
+            user,
+            Notification.NotificationType.SUBSCRIPTION_LOW_USAGE,
+            'Sessions Expiring Soon',
+            f'{LOW_USAGE_REMINDER_DAYS_BEFORE_END} days left on your subscription — '
+            f'you have used {used} of {subscription.sessions_included} sessions.',
+            related_type='subscription',
+            related_id=subscription.pk,
+            action_url='/account/subscription',
+            dedupe_key=f'low-usage-reminder:{subscription.pk}',
+        )
+        sent += 1
+
+    return {'checked': candidates.count(), 'sent': sent}

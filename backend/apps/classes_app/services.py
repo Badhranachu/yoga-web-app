@@ -4,7 +4,7 @@ duration) into concrete, bookable Slot rows.
 
 Invariants enforced everywhere in this module:
   - never create a slot for a date in the past
-  - never delete or modify a slot that is_booked=True
+  - never delete or modify a slot that has any Booking against it
   - never delete a slot dated in the past, regardless of booking state
   - generation is idempotent: running it twice produces no duplicates and
     no changes on the second run (get_or_create keyed on date+start_time,
@@ -124,9 +124,10 @@ def generate_slots(*, horizon_days: int | None = None) -> dict:
 def regenerate_weekday(weekday: int) -> dict:
     """Called when a single TimetableConfig row (one weekday) changes.
 
-    Deletes only that weekday's FUTURE, UNBOOKED slots, then regenerates
-    them from the new config out to the current horizon. Past slots and
-    booked slots for this weekday are left untouched no matter what.
+    Deletes only that weekday's FUTURE, UNBOOKED slots (no Booking rows
+    against them at all), then regenerates them from the new config out to
+    the current horizon. Past slots and any slot with at least one booking
+    are left untouched no matter what.
 
     Returns {"deleted": N, "created": N}.
     """
@@ -135,7 +136,7 @@ def regenerate_weekday(weekday: int) -> dict:
     deleted, _ = Slot.objects.filter(
         weekday=weekday,
         date__gte=today,
-        is_booked=False,
+        bookings__isnull=True,
     ).delete()
 
     result = generate_slots()
@@ -146,11 +147,12 @@ def regenerate_weekday(weekday: int) -> dict:
 def regenerate_all() -> dict:
     """Full future regeneration across every weekday — used when horizon
     changes, or as an explicit admin "resync" action. Same safety
-    guarantees as regenerate_weekday: past and booked slots are untouched.
+    guarantees as regenerate_weekday: past slots and any slot with at
+    least one booking are untouched.
     """
     today = timezone.localdate()
 
-    deleted, _ = Slot.objects.filter(date__gte=today, is_booked=False).delete()
+    deleted, _ = Slot.objects.filter(date__gte=today, bookings__isnull=True).delete()
     result = generate_slots()
     return {'deleted': deleted, 'created': result['created']}
 
@@ -173,7 +175,7 @@ def apply_leave(leave: Leave) -> dict:
         date__lte=leave.end_date,
     )
     updated = affected.update(leave=leave)
-    conflicts = affected.filter(is_booked=True).count()
+    conflicts = affected.filter(bookings__isnull=False).distinct().count()
     return {'blocked': updated, 'conflicts': conflicts}
 
 

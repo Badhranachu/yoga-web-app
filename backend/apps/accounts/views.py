@@ -13,10 +13,18 @@ from .serializers import (
     EmailTokenObtainPairSerializer,
     ForgotPasswordSerializer,
     RegisterSerializer,
+    RequestEmailChangeSerializer,
     ResetPasswordSerializer,
     UserSerializer,
+    VerifyEmailChangeSerializer,
 )
-from .services import issue_password_reset_token, reset_password_with_token
+from .services import (
+    EmailChangeError,
+    issue_password_reset_token,
+    request_email_change,
+    reset_password_with_token,
+    verify_email_change,
+)
 
 
 class RegisterView(APIView):
@@ -104,6 +112,42 @@ class ChangePasswordView(APIView):
         user.set_password(serializer.validated_data['new_password'])
         user.save(update_fields=['password'])
         return success_response(message='Password changed successfully.')
+
+
+class RequestEmailChangeView(APIView):
+    """POST { new_email } -> sends a 6-digit OTP to new_email, valid for 5
+    minutes. The account's email is untouched until VerifyEmailChangeView
+    confirms the code.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = RequestEmailChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            request_email_change(request.user, serializer.validated_data['new_email'])
+        except EmailChangeError as exc:
+            return error_response(str(exc))
+        return success_response(message='A verification code was sent to the new email address.')
+
+
+class VerifyEmailChangeView(APIView):
+    """POST { otp_code } -> verifies the code against the user's most recent
+    pending email-change request and, only on success, updates the account's
+    email.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        serializer = VerifyEmailChangeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            user = verify_email_change(request.user, serializer.validated_data['otp_code'])
+        except EmailChangeError as exc:
+            return error_response(str(exc))
+        return success_response(data=UserSerializer(user).data, message='Email updated successfully.')
 
 
 class ForgotPasswordView(APIView):

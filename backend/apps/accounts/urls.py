@@ -8,7 +8,9 @@ from .views import (
     ProfileView,
     RefreshTokenView,
     RegisterView,
+    RequestEmailChangeView,
     ResetPasswordView,
+    VerifyEmailChangeView,
 )
 
 app_name = 'accounts'
@@ -20,6 +22,8 @@ urlpatterns = [
     path('logout/', LogoutView.as_view(), name='logout'),
     path('profile/', ProfileView.as_view(), name='profile'),
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
+    path('change-email/request/', RequestEmailChangeView.as_view(), name='change-email-request'),
+    path('change-email/verify/', VerifyEmailChangeView.as_view(), name='change-email-verify'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 ]

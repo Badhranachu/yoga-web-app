@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Users, Ticket, CreditCard, FileBarChart2 } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, UserSquare2, CalendarX2, Ticket, CreditCard, FileBarChart2, Bell } from 'lucide-react';
 import { DashboardLayout } from '@/shared/layout/DashboardLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
@@ -6,10 +6,13 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 
 const adminNavItems: SidebarNavItem[] = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
-  { to: '/dashboard/classes', label: 'Classes', icon: CalendarDays },
+  { to: '/dashboard/classes', label: 'Timetable', icon: CalendarDays },
   { to: '/dashboard/members', label: 'Members', icon: Users },
+  { to: '/dashboard/instructors', label: 'Instructors', icon: UserSquare2 },
+  { to: '/dashboard/instructor-leave', label: 'Instructor Leave', icon: CalendarX2 },
   { to: '/dashboard/bookings', label: 'Bookings', icon: Ticket },
   { to: '/dashboard/payments', label: 'Payments', icon: CreditCard },
+  { to: '/dashboard/notifications', label: 'Notifications', icon: Bell },
   { to: '/dashboard/reports', label: 'Reports', icon: FileBarChart2 },
 ];
 

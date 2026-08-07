@@ -26,7 +26,8 @@ export const LoginPage = () => {
     try {
       const user = await login({ email, password });
       const state = location.state as LocationState;
-      const redirectTo = state?.from?.pathname ?? (user.role === 'admin' ? '/dashboard' : '/account');
+      const defaultHome = user.role === 'admin' ? '/dashboard' : user.role === 'instructor' ? '/instructor' : '/account';
+      const redirectTo = state?.from?.pathname ?? defaultHome;
       navigate(redirectTo, { replace: true });
     } catch (err) {
       setError(extractErrorMessage(err, 'Invalid email or password.'));

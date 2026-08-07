@@ -19,6 +19,7 @@ class Notification(TimeStampedModel):
         SUBSCRIPTION_PURCHASED = 'subscription_purchased', 'Subscription Purchased'
         SUBSCRIPTION_RENEWED = 'subscription_renewed', 'Subscription Renewed'
         SUBSCRIPTION_EXPIRED = 'subscription_expired', 'Subscription Expired'
+        SUBSCRIPTION_LOW_USAGE = 'subscription_low_usage', 'Subscription Low Usage'
         PAYMENT_SUCCESSFUL = 'payment_successful', 'Payment Successful'
 
     class Channel(models.TextChoices):

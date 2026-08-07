@@ -21,7 +21,7 @@ const formatTime = (isoTime: string) =>
 // other state (booked, unavailable, leave_conflict) is still shown, never
 // hidden, matching "booked slots remain visible."
 export const SlotPickerGrid = ({ slots, bookingSlotId, onBook }: SlotPickerGridProps) => (
-  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
     {slots.map((slot) => {
       const isAvailable = slot.availability === 'available';
       const isBookingThis = bookingSlotId === slot.id;

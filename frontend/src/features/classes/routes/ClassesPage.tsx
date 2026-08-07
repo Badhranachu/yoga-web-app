@@ -4,32 +4,25 @@ import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { classesApi } from '../api/classesApi';
 import { HorizonSettingsCard } from '../components/HorizonSettingsCard';
 import { TimetableDayRow } from '../components/TimetableDayRow';
-import { UpcomingSlotsList } from '../components/UpcomingSlotsList';
-import { AddLeaveForm } from '../components/AddLeaveForm';
-import { LeaveHistoryTable } from '../components/LeaveHistoryTable';
-import type { Leave, TimetableConfig, TimetableConfigUpdatePayload, Weekday } from '../types';
+import type { TimetableConfig, TimetableConfigUpdatePayload, Weekday } from '../types';
 
 // Admin timetable configuration: per-weekday working hours + slot duration,
-// the slot-generation horizon, and leave management. Admins never create
-// daily slots directly — the backend derives them from this configuration,
-// and blocks (never deletes) slots that fall on a leave date.
+// and the slot-generation horizon. Admins never create daily slots
+// directly — the backend derives them from this configuration.
 export const ClassesPage = () => {
   const [days, setDays] = useState<TimetableConfig[] | null>(null);
   const [horizonDays, setHorizonDays] = useState<number | null>(null);
-  const [leaves, setLeaves] = useState<Leave[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [timetable, horizon, leaveHistory] = await Promise.all([
+        const [timetable, horizon] = await Promise.all([
           classesApi.getTimetable(),
           classesApi.getHorizonSettings(),
-          classesApi.getLeaves(),
         ]);
         setDays(timetable);
         setHorizonDays(horizon.horizon_days);
-        setLeaves(leaveHistory.results);
       } catch (err) {
         setLoadError(extractErrorMessage(err, 'Could not load the timetable.'));
       }
@@ -40,14 +33,6 @@ export const ClassesPage = () => {
   const handleSaveDay = async (weekday: Weekday, payload: TimetableConfigUpdatePayload) => {
     const updated = await classesApi.updateTimetableDay(weekday, payload);
     setDays((current) => (current ? current.map((d) => (d.weekday === weekday ? updated : d)) : current));
-  };
-
-  const handleLeaveAdded = (leave: Leave) => {
-    setLeaves((current) => (current ? [leave, ...current] : [leave]));
-  };
-
-  const handleLeaveDeleted = (id: number) => {
-    setLeaves((current) => (current ? current.filter((l) => l.id !== id) : current));
   };
 
   return (
@@ -80,18 +65,6 @@ export const ClassesPage = () => {
       {horizonDays !== null && (
         <HorizonSettingsCard horizonDays={horizonDays} onUpdated={setHorizonDays} />
       )}
-
-      <h2 className="font-serif text-2xl text-[#2B241E] mt-12 mb-2">Leave</h2>
-      <p className="text-[#786A58] text-sm mb-8">
-        Block dates from bookings — holidays, closures, or maintenance. No slot can be booked on a leave date.
-      </p>
-
-      <div className="grid md:grid-cols-2 gap-8 items-start mb-8">
-        <AddLeaveForm onAdded={handleLeaveAdded} />
-        {leaves && <LeaveHistoryTable leaves={leaves} onDeleted={handleLeaveDeleted} />}
-      </div>
-
-      <UpcomingSlotsList />
     </div>
   );
 };

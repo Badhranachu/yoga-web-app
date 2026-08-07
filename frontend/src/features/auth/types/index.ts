@@ -1,6 +1,6 @@
 export type { ApiSuccess, ApiError } from '@/shared/types/api';
 
-export type UserRole = 'admin' | 'user';
+export type UserRole = 'admin' | 'user' | 'instructor';
 
 export type User = {
   id: number;
@@ -9,6 +9,8 @@ export type User = {
   last_name: string;
   full_name: string;
   phone_number: string;
+  address: string;
+  age: number | null;
   role: UserRole;
   is_active: boolean;
   created_at: string;
@@ -49,5 +51,13 @@ export type ResetPasswordPayload = {
 export type ChangePasswordPayload = {
   current_password: string;
   new_password: string;
+};
+
+export type RequestEmailChangePayload = {
+  new_email: string;
+};
+
+export type VerifyEmailChangePayload = {
+  otp_code: string;
 };
 

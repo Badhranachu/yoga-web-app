@@ -7,13 +7,14 @@ from apps.payments.models import UserSubscription
 
 
 class Booking(TimeStampedModel):
-    """A single user's reservation of a single slot.
+    """A single user's reservation of one spot within a Slot.
 
-    slot is a OneToOneField — this is the hard, DB-level guarantee behind
-    "one slot can contain only one booking." Combined with
-    select_for_update() row-locking in services.create_booking, this is
-    what actually prevents two concurrent requests from double-booking
-    the same slot (see services.py for the full race-condition story).
+    A slot can hold multiple bookings up to its capacity (one spot per
+    instructor account, minus any on leave for that slot — see
+    apps.classes_app.models.Slot.capacity). select_for_update() row-locking
+    on the Slot in services.create_booking is what prevents two concurrent
+    requests from both grabbing the last open spot (see services.py for the
+    full race-condition story).
 
     Booking deducts a session immediately at creation time if the user has
     a usable subscription (see services.create_booking, which calls
@@ -32,7 +33,7 @@ class Booking(TimeStampedModel):
         Slot,
         on_delete=models.PROTECT,
         related_name='bookings',
-        help_text='One slot can contain only one booking — enforced by this being a OneToOneField.',
+        help_text='One slot can hold multiple bookings, up to Slot.capacity.',
     )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,

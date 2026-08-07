@@ -10,7 +10,7 @@ export type SubscriptionPlanUpdatePayload = Partial<
   Pick<SubscriptionPlan, 'monthly_price' | 'included_sessions' | 'is_active'>
 >;
 
-export type SubscriptionStatus = 'active' | 'expired' | 'exhausted' | 'cancelled';
+export type SubscriptionStatus = 'scheduled' | 'active' | 'expired' | 'exhausted' | 'cancelled';
 
 export type UserSubscription = {
   id: number;
@@ -95,4 +95,12 @@ export type VerifyPaymentPayload = {
   razorpay_order_id: string;
   razorpay_payment_id: string;
   razorpay_signature: string;
+  start_date?: string | null; // "YYYY-MM-DD" — required for 'renew', optional for 'purchase'
+};
+
+export type SubscriptionStartDateOptions = {
+  action: 'purchase' | 'renew';
+  current_subscription_end_date: string | null; // "YYYY-MM-DD", set only when action === 'renew'
+  earliest: string; // "YYYY-MM-DD"
+  latest: string; // "YYYY-MM-DD"
 };

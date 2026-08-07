@@ -19,6 +19,14 @@ def _default_expiry():
     return timezone.now() + timedelta(hours=1)
 
 
+def _generate_otp():
+    return f'{secrets.randbelow(1_000_000):06d}'
+
+
+def _otp_expiry():
+    return timezone.now() + timedelta(minutes=5)
+
+
 class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     """Custom user model, authenticated by email instead of username.
 
@@ -31,11 +39,14 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     class Role(models.TextChoices):
         ADMIN = 'admin', 'Admin'
         USER = 'user', 'User'
+        INSTRUCTOR = 'instructor', 'Instructor'
 
     email = models.EmailField(unique=True)
     first_name = models.CharField(max_length=150, blank=True)
     last_name = models.CharField(max_length=150, blank=True)
     phone_number = models.CharField(max_length=32, blank=True)
+    address = models.CharField(max_length=255, blank=True)
+    age = models.PositiveSmallIntegerField(null=True, blank=True)
     role = models.CharField(max_length=16, choices=Role.choices, default=Role.USER)
 
     is_active = models.BooleanField(default=True)
@@ -49,6 +60,8 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     class Meta:
         db_table = 'accounts_user'
         ordering = ['-created_at']
+        verbose_name = 'Custom User'
+        verbose_name_plural = 'Custom Users'
         indexes = [
             models.Index(fields=['is_active', 'created_at'], name='idx_user_active_date'),
         ]
@@ -63,6 +76,10 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     @property
     def is_admin(self):
         return self.role == self.Role.ADMIN
+
+    @property
+    def is_instructor(self):
+        return self.role == self.Role.INSTRUCTOR
 
 
 class PasswordResetToken(TimeStampedModel):
@@ -91,3 +108,63 @@ class PasswordResetToken(TimeStampedModel):
     def mark_used(self):
         self.used_at = timezone.now()
         self.save(update_fields=['used_at', 'updated_at'])
+
+
+class EmailChangeRequest(TimeStampedModel):
+    """A pending request to change the authenticated user's email, guarded
+    by a 6-digit OTP sent to the NEW address. The account's email is only
+    updated once the correct code is submitted within the 5-minute window
+    (see apps.accounts.services.verify_email_change) — never before.
+    """
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='email_change_requests',
+    )
+    new_email = models.EmailField()
+    otp_code = models.CharField(max_length=6, default=_generate_otp)
+    expires_at = models.DateTimeField(default=_otp_expiry)
+    used_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'accounts_email_change_request'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Email change for {self.user_id} -> {self.new_email}'
+
+    @property
+    def is_valid(self):
+        return self.used_at is None and timezone.now() < self.expires_at and self.attempts < 5
+
+    def mark_used(self):
+        self.used_at = timezone.now()
+        self.save(update_fields=['used_at', 'updated_at'])
+
+    def register_failed_attempt(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts', 'updated_at'])
+
+
+class AdminProfile(TimeStampedModel):
+    """Admin-specific profile extension, symmetric to apps.members.UserProfile
+    (which extends role=user accounts). Shared account fields — name, email,
+    phone, address, age — stay on accounts.User; this model exists as the
+    place for admin-only fields as they're needed. Created only for
+    role=admin accounts (see signals.ensure_admin_profile).
+    """
+
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='admin_profile',
+    )
+
+    class Meta:
+        db_table = 'accounts_admin_profile'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Admin profile — {self.user.email}'

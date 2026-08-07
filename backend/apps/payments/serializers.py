@@ -58,6 +58,17 @@ class VerifyPaymentSerializer(serializers.Serializer):
     razorpay_order_id = serializers.CharField()
     razorpay_payment_id = serializers.CharField()
     razorpay_signature = serializers.CharField()
+    start_date = serializers.DateField(required=False, allow_null=True, default=None)
+
+    def validate(self, attrs):
+        if attrs['action'] == 'renew' and attrs.get('start_date') is None:
+            raise serializers.ValidationError({'start_date': 'An activation date is required to renew.'})
+        return attrs
+
+
+class StartDateWindowSerializer(serializers.Serializer):
+    earliest = serializers.DateField()
+    latest = serializers.DateField()
 
 
 class ReceiptSerializer(serializers.ModelSerializer):

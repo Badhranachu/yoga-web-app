@@ -16,8 +16,8 @@ class TimetableConfigAdmin(admin.ModelAdmin):
 
 @admin.register(Slot)
 class SlotAdmin(admin.ModelAdmin):
-    list_display = ['date', 'start_time', 'end_time', 'is_booked', 'availability_label', 'leave']
-    list_filter = ['is_booked', 'date']
+    list_display = ['date', 'start_time', 'end_time', 'capacity_label', 'availability_label', 'leave']
+    list_filter = ['date']
     date_hierarchy = 'date'
     ordering = ['date', 'start_time']
     readonly_fields = [field.name for field in Slot._meta.fields]
@@ -27,6 +27,10 @@ class SlotAdmin(admin.ModelAdmin):
 
     def has_change_permission(self, request, obj=None):
         return False
+
+    @admin.display(description='Booked / Capacity')
+    def capacity_label(self, obj):
+        return f'{obj.booked_count}/{obj.capacity}'
 
     @admin.display(description='Availability')
     def availability_label(self, obj):

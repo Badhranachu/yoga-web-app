@@ -42,6 +42,7 @@ LOCAL_APPS = [
     'apps.accounts',
     'apps.classes_app',
     'apps.members',
+    'apps.instructors',
     'apps.bookings',
     'apps.payments',
     'apps.notifications',
@@ -180,14 +181,18 @@ RAZORPAY_KEY_SECRET = config('RAZORPAY_KEY_SECRET', default='')
 PASSWORD_RESET_TOKEN_TTL_HOURS = config('PASSWORD_RESET_TOKEN_TTL_HOURS', default=1, cast=int)
 
 # Email — defaults to console backend so reset links are visible in dev logs
-# without needing real SMTP credentials. Override via env in prod.
+# without needing real SMTP credentials. Override via env in prod. Used by
+# every outgoing email in the app: password reset, email-change OTP, and any
+# future notification email.
 EMAIL_BACKEND = config('EMAIL_BACKEND', default='django.core.mail.backends.console.EmailBackend')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='no-reply@ekamyoga.ae')
+SERVER_EMAIL = config('SERVER_EMAIL', default=DEFAULT_FROM_EMAIL)
 EMAIL_HOST = config('EMAIL_HOST', default='')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
 
 LOGGING = {
     'version': 1,

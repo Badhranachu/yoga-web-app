@@ -68,8 +68,12 @@ def build_admin_overview():
             Q(status=UserSubscription.Status.EXPIRED)
             | Q(status=UserSubscription.Status.ACTIVE, end_date__lt=today)
         ).count(),
-        'booked_slots': Slot.objects.filter(date__gte=today, is_booked=True).count(),
-        'available_slots': Slot.objects.filter(date__gte=today, is_booked=False, leave__isnull=True).count(),
+        'booked_slots': Slot.objects.filter(date__gte=today, bookings__isnull=False).distinct().count(),
+        'available_slots': sum(
+            1
+            for slot in Slot.objects.filter(date__gte=today, leave__isnull=True)
+            if slot.availability == Slot.Availability.AVAILABLE
+        ),
         'transfer_requests': BookingChangeRequest.objects.filter(
             request_type=BookingChangeRequest.RequestType.TRANSFER,
             status=BookingChangeRequest.Status.PENDING,

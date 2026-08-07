@@ -11,6 +11,10 @@ import { AdminLayout } from '@/features/dashboard-overview/components/AdminLayou
 import { OverviewPage } from '@/features/dashboard-overview/routes/OverviewPage';
 import { ClassesPage } from '@/features/classes/routes/ClassesPage';
 import { MembersPage } from '@/features/members/routes/MembersPage';
+import { InstructorsPage } from '@/features/instructors/routes/InstructorsPage';
+import { InstructorLeavePage } from '@/features/instructors/routes/InstructorLeavePage';
+import { InstructorLayout } from '@/features/instructors/components/InstructorLayout';
+import { InstructorOverviewPage } from '@/features/instructors/routes/InstructorOverviewPage';
 import { BookingsPage } from '@/features/bookings/routes/BookingsPage';
 import { BookSlotPage } from '@/features/bookings/routes/BookSlotPage';
 import { PaymentsPage } from '@/features/payments/routes/PaymentsPage';
@@ -20,6 +24,8 @@ import { ReportsPage } from '@/features/reports/routes/ReportsPage';
 import { UserLayout } from '@/features/account/components/UserLayout';
 import { AccountOverviewPage } from '@/features/account/routes/AccountOverviewPage';
 import { ProfilePage } from '@/features/account/routes/ProfilePage';
+import { ChangeEmailPage } from '@/features/account/routes/ChangeEmailPage';
+import { ChangePasswordPage } from '@/features/account/routes/ChangePasswordPage';
 import { SubscriptionPage } from '@/features/account/routes/SubscriptionPage';
 
 // Central route tree. Feature modules own their page components; this file
@@ -46,8 +52,11 @@ export const router = createBrowserRouter([
               { index: true, element: <OverviewPage /> },
               { path: 'classes', element: <ClassesPage /> },
               { path: 'members', element: <MembersPage /> },
+              { path: 'instructors', element: <InstructorsPage /> },
+              { path: 'instructor-leave', element: <InstructorLeavePage /> },
               { path: 'bookings', element: <BookingsPage /> },
               { path: 'payments', element: <PaymentsPage /> },
+              { path: 'notifications', element: <NotificationsPage /> },
               { path: 'reports', element: <ReportsPage /> },
             ],
           },
@@ -66,6 +75,23 @@ export const router = createBrowserRouter([
               { path: 'payment-history', element: <PaymentHistoryPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'profile', element: <ProfilePage /> },
+              { path: 'profile/change-email', element: <ChangeEmailPage /> },
+              { path: 'profile/change-password', element: <ChangePasswordPage /> },
+            ],
+          },
+        ],
+      },
+      {
+        element: <RoleGuard allow={['instructor']} />,
+        children: [
+          {
+            path: '/instructor',
+            element: <InstructorLayout />,
+            children: [
+              { index: true, element: <InstructorOverviewPage /> },
+              { path: 'profile', element: <ProfilePage /> },
+              { path: 'profile/change-email', element: <ChangeEmailPage /> },
+              { path: 'profile/change-password', element: <ChangePasswordPage /> },
             ],
           },
         ],

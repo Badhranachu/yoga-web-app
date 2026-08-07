@@ -18,6 +18,7 @@ from .serializers import (
     CreatePaymentOrderSerializer,
     SingleSlotPriceSerializer,
     SlotPurchaseSerializer,
+    StartDateWindowSerializer,
     SubscriptionPlanSerializer,
     PaymentTransactionSerializer,
     ReceiptSerializer,
@@ -25,11 +26,15 @@ from .serializers import (
     VerifyPaymentSerializer,
 )
 from .services import (
+    InvalidStartDateError,
     NoActivePlanError,
     PaymentVerificationError,
     SubscriptionStateError,
     create_order_for_payment_type,
     get_active_subscription,
+    get_latest_non_scheduled_subscription,
+    get_purchase_start_date_window,
+    get_renewal_start_date_window,
     get_single_slot_price,
     purchase_subscription,
     record_slot_purchase,
@@ -140,6 +145,40 @@ class MySubscriptionHistoryStatusView(APIView):
         return success_response(data={'has_previous_subscription': has_previous_subscription})
 
 
+class SubscriptionStartDateOptionsView(APIView):
+    """GET the allowed start/activation date window for the member's next
+    subscription action, plus enough context for the frontend to render
+    the "Current Subscription Ends On" messaging before showing the date
+    picker.
+
+    - No prior subscription at all -> purchase window (today .. last day
+      of next month), current_subscription_end_date is null.
+    - Has a prior subscription (active, expired, or exhausted) -> renewal
+      window (day after that subscription's end_date .. last day of next
+      month), current_subscription_end_date set for the "remains active
+      until this date" messaging.
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        current = get_latest_non_scheduled_subscription(request.user)
+        if current is None:
+            window = get_purchase_start_date_window()
+            return success_response(data={
+                'action': 'purchase',
+                'current_subscription_end_date': None,
+                **StartDateWindowSerializer(window).data,
+            })
+
+        window = get_renewal_start_date_window(current)
+        return success_response(data={
+            'action': 'renew',
+            'current_subscription_end_date': current.end_date,
+            **StartDateWindowSerializer(window).data,
+        })
+
+
 class CreatePaymentOrderView(APIView):
     """POST {"payment_type": "subscription"|"single_slot"}: creates a
     Razorpay Order for the amount matching the requested action and
@@ -211,20 +250,26 @@ class VerifyAndCompletePaymentView(APIView):
             try:
                 subscription = purchase_subscription(
                     request.user,
+                    start_date=data.get('start_date'),
                     provider='razorpay',
                     provider_transaction_id=data['razorpay_payment_id'],
                     metadata=provider_metadata,
                 )
             except NoActivePlanError:
                 return error_response('No subscription plan is currently available.')
-            except SubscriptionStateError as exc:
+            except (SubscriptionStateError, InvalidStartDateError) as exc:
                 return error_response(str(exc))
+            message = (
+                'Subscription purchased successfully.'
+                if subscription.status == UserSubscription.Status.ACTIVE
+                else 'Subscription purchased successfully and scheduled to activate.'
+            )
             return success_response(
                 data={
                     'subscription': UserSubscriptionSerializer(subscription).data,
                     'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
                 },
-                message='Subscription purchased successfully.',
+                message=message,
                 status=status.HTTP_201_CREATED,
             )
 
@@ -232,18 +277,21 @@ class VerifyAndCompletePaymentView(APIView):
             try:
                 subscription = renew_subscription(
                     request.user,
+                    start_date=data['start_date'],
                     provider='razorpay',
                     provider_transaction_id=data['razorpay_payment_id'],
                     metadata=provider_metadata,
                 )
             except NoActivePlanError:
                 return error_response('No subscription plan is currently available.')
+            except (SubscriptionStateError, InvalidStartDateError) as exc:
+                return error_response(str(exc))
             return success_response(
                 data={
                     'subscription': UserSubscriptionSerializer(subscription).data,
                     'payment': PaymentTransactionSerializer(_payment_for_subscription(subscription)).data,
                 },
-                message='Subscription renewed successfully.',
+                message='Subscription renewed successfully and scheduled to activate.',
                 status=status.HTTP_201_CREATED,
             )
 
