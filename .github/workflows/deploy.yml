@@ -26,48 +26,180 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # Available to every step below without repeating `env:` per step.
+    # VPS_SSH_KEY is deliberately NOT here — it's scoped only to the one
+    # step that writes it to a file, keeping its exposure surface as
+    # small as possible.
+    env:
+      VPS_HOST: ${{ secrets.VPS_HOST }}
+      VPS_PORT: ${{ secrets.VPS_PORT }}
+      VPS_USER: ${{ secrets.VPS_USER }}
+
     steps:
-      # Populates known_hosts from the real VPS host key via ssh-keyscan,
-      # rather than disabling verification with StrictHostKeyChecking=no.
-      # This is TOFU (trust-on-first-use) — see the deployment docs for
-      # the stronger alternative (pinning a known_hosts secret) if that
-      # matters for this environment.
-      - name: Add VPS host key to known_hosts
+      # Fail fast, before any network activity, if a secret is missing
+      # or empty — this is a much clearer failure than letting
+      # ssh-keyscan/ssh fail later with a confusing connection error
+      # that was actually caused by, say, an empty VPS_HOST.
+      - name: Validate required secrets are present
+        shell: bash
+        run: |
+          missing=0
+          for name in VPS_HOST VPS_PORT VPS_USER VPS_SSH_KEY; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::Required secret ${name} is not set (or is empty)."
+              missing=1
+            fi
+          done
+          if [ "$missing" -eq 1 ]; then
+            echo "::error::One or more required secrets are missing. Add them under Settings > Secrets and variables > Actions, then re-run this workflow."
+            exit 1
+          fi
+          echo "All required secrets are present."
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+
+      # VPS_SSH_KEY is intentionally never referenced here — only the
+      # three connection values needed to reach the host at all.
+      - name: Debug connection variables
+        shell: bash
+        run: |
+          echo "VPS_HOST: ${VPS_HOST}"
+          echo "VPS_PORT: ${VPS_PORT}"
+          echo "VPS_USER: ${VPS_USER}"
+          # GitHub automatically masks the raw values above as *** in the
+          # rendered log regardless of this echo — these lengths are the
+          # actually useful signal for catching a silently-empty secret
+          # or stray trailing whitespace/newline from how it was pasted
+          # into the Secrets UI, without exposing the value itself.
+          echo "VPS_HOST length: ${#VPS_HOST}"
+          echo "VPS_PORT length: ${#VPS_PORT}"
+          echo "VPS_USER length: ${#VPS_USER}"
+
+      # Replaces the previous version's `ssh-keyscan ... 2>/dev/null`,
+      # which is very likely why this step used to fail with no visible
+      # cause: any ssh-keyscan error was silently discarded, and GitHub
+      # Actions' `shell: bash` steps run with errexit already on, so a
+      # non-zero exit from ssh-keyscan killed the step instantly with
+      # zero diagnostic output. This version separates "can we even open
+      # a TCP connection" from "does ssh-keyscan get a key back", and
+      # prints everything instead of hiding it.
+      - name: Verify VPS reachability and capture SSH host key
         shell: bash
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          ssh-keyscan -p "${{ secrets.VPS_PORT }}" "${{ secrets.VPS_HOST }}" >> ~/.ssh/known_hosts 2>/dev/null
+
+          echo "Checking TCP connectivity to ${VPS_HOST}:${VPS_PORT}..."
+          if ! timeout 10 bash -c "</dev/tcp/${VPS_HOST}/${VPS_PORT}" 2>/tmp/tcp_check.log; then
+            echo "::error::Cannot open a TCP connection to ${VPS_HOST}:${VPS_PORT} within 10s. This usually means the VPS firewall is blocking GitHub Actions runner IPs, the VPS_HOST/VPS_PORT secret is wrong, or the VPS/SSH daemon is down."
+            cat /tmp/tcp_check.log 2>/dev/null || true
+            exit 1
+          fi
+          echo "TCP connectivity to ${VPS_HOST}:${VPS_PORT} confirmed."
+
+          echo "Running ssh-keyscan..."
+          if ! ssh-keyscan -v -p "${VPS_PORT}" "${VPS_HOST}" > /tmp/keyscan_output.txt 2>/tmp/keyscan_debug.txt; then
+            echo "::error::ssh-keyscan exited non-zero for ${VPS_HOST}:${VPS_PORT}."
+            echo "--- ssh-keyscan verbose output ---"
+            cat /tmp/keyscan_debug.txt || true
+            exit 1
+          fi
+
+          if [ ! -s /tmp/keyscan_output.txt ]; then
+            echo "::error::ssh-keyscan returned no host key for ${VPS_HOST}:${VPS_PORT}. TCP connects, but nothing answered as SSH — check that sshd is actually listening on that port."
+            echo "--- ssh-keyscan verbose output ---"
+            cat /tmp/keyscan_debug.txt || true
+            exit 1
+          fi
+
+          cat /tmp/keyscan_output.txt >> ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+
+          echo "--- Captured known_hosts entry ---"
+          cat ~/.ssh/known_hosts
 
       - name: Write deploy SSH key
         shell: bash
         run: |
           umask 077
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "${VPS_SSH_KEY}" > "$RUNNER_TEMP/deploy_key"
           chmod 600 "$RUNNER_TEMP/deploy_key"
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
 
-      # All the real work — git pull, docker compose down/up, waiting for
-      # every container to report healthy, and printing diagnostics —
-      # lives in scripts/deploy.sh, versioned in this repo so `git pull`
-      # always brings the VPS's copy up to date with what's being
-      # deployed. BatchMode=yes makes SSH fail immediately instead of
-      # hanging on a prompt if auth or host verification ever goes wrong
-      # in a non-interactive run. This step's exit code is exactly
-      # deploy.sh's exit code, so an unhealthy/timed-out deployment fails
-      # this step, which fails the job.
+      # Deliberately separate from the actual deploy step: this proves
+      # auth + host-key verification work in isolation, with maximum
+      # ssh client verbosity (-vvv), before we ever touch the running
+      # containers. If this step fails, the deploy step below never
+      # runs — GitHub Actions halts a job at the first failing step by
+      # default, so no extra `if:` guard is needed for that.
+      - name: Test SSH connectivity
+        shell: bash
+        run: |
+          ssh -vvv \
+              -i "$RUNNER_TEMP/deploy_key" \
+              -p "${VPS_PORT}" \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=3 \
+              -o LogLevel=VERBOSE \
+              "${VPS_USER}@${VPS_HOST}" \
+              "echo Connected"
+
+      # All the deployment logic — git pull, docker compose down/up,
+      # waiting for every container to report healthy, and printing
+      # diagnostics — lives in scripts/deploy.sh, versioned in this repo
+      # so `git pull` always brings the VPS's copy up to date with what's
+      # being deployed. This step's exit code is exactly deploy.sh's exit
+      # code, so an unhealthy/timed-out deployment fails this step, which
+      # fails the job and triggers the diagnostics step below.
       - name: Deploy over SSH
         shell: bash
         run: |
           ssh -i "$RUNNER_TEMP/deploy_key" \
-              -p "${{ secrets.VPS_PORT }}" \
+              -p "${VPS_PORT}" \
               -o BatchMode=yes \
-              "${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }}" \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=3 \
+              -o LogLevel=VERBOSE \
+              "${VPS_USER}@${VPS_HOST}" \
               'set -e
                cd /var/www/harmony
                git pull origin main
                chmod +x scripts/deploy.sh
                bash scripts/deploy.sh'
+
+      # Only runs if an earlier step failed. Reconnects specifically to
+      # gather post-mortem diagnostics — wrapped so that if the VPS is
+      # unreachable for this too (e.g. the original failure WAS
+      # connectivity), that degrades to a warning instead of a second,
+      # more confusing failure on top of the real one.
+      - name: Show diagnostics on failure
+        if: failure()
+        shell: bash
+        run: |
+          ssh -i "$RUNNER_TEMP/deploy_key" \
+              -p "${VPS_PORT}" \
+              -o BatchMode=yes \
+              -o StrictHostKeyChecking=yes \
+              -o ConnectTimeout=15 \
+              -o ServerAliveInterval=30 \
+              -o ServerAliveCountMax=3 \
+              -o LogLevel=ERROR \
+              "${VPS_USER}@${VPS_HOST}" \
+              'cd /var/www/harmony
+               echo "----- docker compose ps -----"
+               docker compose ps || true
+               echo "----- backend logs (last 100 lines) -----"
+               docker compose logs --tail=100 backend || true
+               echo "----- frontend logs (last 100 lines) -----"
+               docker compose logs --tail=100 frontend || true' \
+          || echo "::warning::Could not reach the VPS to gather post-failure diagnostics — the earlier failure is the primary issue to investigate."
 
       - name: Remove deploy SSH key
         if: always()
