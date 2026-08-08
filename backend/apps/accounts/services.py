@@ -24,7 +24,7 @@ def issue_password_reset_token(email: str) -> None:
     reset_link = f'{settings.FRONTEND_URL}/reset-password?token={reset_token.token}'
 
     send_mail(
-        subject='Reset your EKAM Yoga password',
+        subject='Reset your Harmony Fusion Studio password',
         message=(
             f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
             f'Use the link below to reset your password. It expires in '
@@ -81,7 +81,7 @@ def request_email_change(user, new_email: str) -> EmailChangeRequest:
 
     try:
         send_mail(
-            subject='Confirm your new EKAM Yoga email',
+            subject='Confirm your new Harmony Fusion Studio email',
             message=(
                 f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
                 f'Use the code below to confirm {new_email} as your new email address. '

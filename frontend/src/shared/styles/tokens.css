@@ -1,5 +1,5 @@
 /*
- * Design tokens for the EKAM Yoga design language.
+ * Design tokens for the Harmony Fusion Studio design language.
  * Source of truth: the original homepage (home page/src/App.tsx globalStyles).
  * Both the public site and the dashboard must consume colors from here —
  * never hardcode hex values in feature code.
@@ -15,6 +15,20 @@
 
   --font-serif: 'Playfair Display', serif;
   --font-sans: 'Manrope', sans-serif;
+
+  /* Indeterminate loading bar (LoadingBar component) — a bar of fixed
+     width sliding end-to-end, since these loads never have a real
+     byte-count to report a true percentage from. */
+  --animate-loading-bar: loading-bar 1.2s ease-in-out infinite;
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
 }
 
 :root {

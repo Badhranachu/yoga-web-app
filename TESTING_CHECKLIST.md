@@ -1,4 +1,4 @@
-# EKAM Yoga Manual Testing Checklist
+# Harmony Fusion Studio Manual Testing Checklist
 
 Use this checklist before production deployment. Execute tests in a clean
 browser session and record the environment, tester, date, and result.

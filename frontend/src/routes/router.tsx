@@ -25,6 +25,7 @@ import { NotificationsPage } from '@/features/notifications/routes/Notifications
 import { ReportsPage } from '@/features/reports/routes/ReportsPage';
 import { UserLayout } from '@/features/account/components/UserLayout';
 import { AccountOverviewPage } from '@/features/account/routes/AccountOverviewPage';
+import { BookingHistoryPage } from '@/features/account/routes/BookingHistoryPage';
 import { ProfilePage } from '@/features/account/routes/ProfilePage';
 import { ChangeEmailPage } from '@/features/account/routes/ChangeEmailPage';
 import { ChangePasswordPage } from '@/features/account/routes/ChangePasswordPage';
@@ -74,6 +75,7 @@ export const router = createBrowserRouter([
             children: [
               { index: true, element: <AccountOverviewPage /> },
               { path: 'book', element: <BookSlotPage /> },
+              { path: 'booking-history', element: <BookingHistoryPage /> },
               { path: 'subscription', element: <SubscriptionPage /> },
               { path: 'payment-history', element: <PaymentHistoryPage /> },
               { path: 'notifications', element: <NotificationsPage /> },

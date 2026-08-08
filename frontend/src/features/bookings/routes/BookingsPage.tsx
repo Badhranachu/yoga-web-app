@@ -36,6 +36,7 @@ export const BookingsPage = () => {
   const [selectedTransferSlot, setSelectedTransferSlot] = useState<Slot | null>(null);
   const [reviewRequest, setReviewRequest] = useState<BookingChangeRequest | null>(null);
   const [isChanging, setIsChanging] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
 
   const loadBookings = async () => {
     try {
@@ -163,45 +164,68 @@ export const BookingsPage = () => {
                 <div className="text-[#786A58]">{booking.user_email}</div>
               </div>
               <div className="flex items-center gap-3">
-                <select
-                  value={booking.instructor_id ?? ''}
-                  onChange={(e) => void handleReassign(booking, e.target.value ? Number(e.target.value) : null)}
-                  disabled={reassigningId === booking.id}
-                  className="rounded-full border border-[#2B241E]/15 bg-white/60 px-2.5 py-1 text-xs text-[#2B241E] outline-none disabled:opacity-50"
-                >
-                  <option value="">No instructor</option>
-                  {instructors.map((instructor) => (
-                    <option key={instructor.id} value={instructor.id}>
-                      {instructor.username ?? instructor.email}
-                    </option>
-                  ))}
-                </select>
+                {editingId === booking.id ? (
+                  <select
+                    value={booking.instructor_id ?? ''}
+                    onChange={(e) => void handleReassign(booking, e.target.value ? Number(e.target.value) : null)}
+                    disabled={reassigningId === booking.id}
+                    className="rounded-full border border-[#2B241E]/15 bg-white/60 px-2.5 py-1 text-xs text-[#2B241E] outline-none disabled:opacity-50"
+                  >
+                    <option value="">No instructor</option>
+                    {instructors.map((instructor) => (
+                      <option key={instructor.id} value={instructor.id}>
+                        {instructor.username ?? instructor.email}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="text-xs text-[#786A58]">
+                    {instructors.find((i) => i.id === booking.instructor_id)?.username ?? booking.instructor_name ?? 'No instructor'}
+                  </span>
+                )}
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] uppercase tracking-wider ${STATUS_STYLES[booking.status]}`}
                 >
                   {booking.status}
                 </span>
-                {booking.status === 'booked' && (
+                {editingId === booking.id ? (
                   <>
-                    <button onClick={() => void openTransfer(booking)} className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A] transition-colors">
-                      Transfer
-                    </button>
+                    {booking.status === 'booked' && (
+                      <>
+                        <button onClick={() => void openTransfer(booking)} className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A] transition-colors">
+                          Transfer
+                        </button>
+                        <button
+                          onClick={() => handleMarkAttended(booking)}
+                          disabled={processingId === booking.id}
+                          className="px-3 py-1.5 rounded-full text-xs uppercase tracking-widest bg-[#2B241E] text-white hover:bg-[#D8B46A] transition-colors disabled:opacity-40"
+                        >
+                          {processingId === booking.id ? 'Saving…' : 'Mark Attended'}
+                        </button>
+                      </>
+                    )}
+                    {booking.status === 'attended' && (
+                      <button
+                        onClick={() => handleRevertAttended(booking)}
+                        disabled={processingId === booking.id}
+                        className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A] transition-colors disabled:opacity-40"
+                      >
+                        {processingId === booking.id ? 'Saving…' : 'Revert'}
+                      </button>
+                    )}
                     <button
-                      onClick={() => handleMarkAttended(booking)}
-                      disabled={processingId === booking.id}
-                      className="px-3 py-1.5 rounded-full text-xs uppercase tracking-widest bg-[#2B241E] text-white hover:bg-[#D8B46A] transition-colors disabled:opacity-40"
+                      onClick={() => setEditingId(null)}
+                      className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E] transition-colors"
                     >
-                      {processingId === booking.id ? 'Saving…' : 'Mark Attended'}
+                      Done
                     </button>
                   </>
-                )}
-                {booking.status === 'attended' && (
+                ) : (
                   <button
-                    onClick={() => handleRevertAttended(booking)}
-                    disabled={processingId === booking.id}
-                    className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A] transition-colors disabled:opacity-40"
+                    onClick={() => setEditingId(booking.id)}
+                    className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E] transition-colors"
                   >
-                    {processingId === booking.id ? 'Saving…' : 'Revert'}
+                    Edit
                   </button>
                 )}
               </div>

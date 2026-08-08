@@ -1,4 +1,4 @@
-import { LayoutDashboard, UserCircle2, CreditCard, CalendarPlus, ReceiptText, Bell } from 'lucide-react';
+import { LayoutDashboard, UserCircle2, CreditCard, CalendarPlus, History, ReceiptText, Bell } from 'lucide-react';
 import { DashboardLayout } from '@/shared/layout/DashboardLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
@@ -8,6 +8,7 @@ import { SessionsRemainingBadge } from '../components/SessionsRemainingBadge';
 const userNavItems: SidebarNavItem[] = [
   { to: '/account', label: 'My Bookings', icon: LayoutDashboard, end: true },
   { to: '/account/book', label: 'Book a Class', icon: CalendarPlus },
+  { to: '/account/booking-history', label: 'Booking History', icon: History },
   { to: '/account/subscription', label: 'Subscription', icon: CreditCard },
   { to: '/account/payment-history', label: 'Payment History', icon: ReceiptText },
   { to: '/account/notifications', label: 'Notifications', icon: Bell },

@@ -1,4 +1,4 @@
-# EKAM Yoga Project Overview
+# Harmony Fusion Studio Project Overview
 
 The system is a modular monolith: one React/Vite application serves the
 public homepage, member account area, and admin dashboard; one Django/DRF

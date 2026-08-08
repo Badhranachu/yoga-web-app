@@ -2,7 +2,8 @@ from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.generics import ListCreateAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.views import APIView
 
 from apps.core.permissions import IsAdminRole
@@ -11,7 +12,12 @@ from apps.core.responses import error_response, success_response
 from .leave_models import InstructorLeave
 from .leave_serializers import CreateInstructorLeaveSerializer, InstructorLeaveSerializer
 from .models import InstructorProfile
-from .serializers import AdminCreateInstructorSerializer, InstructorProfileSerializer
+from .serializers import (
+    AdminCreateInstructorSerializer,
+    InstructorProfileSerializer,
+    PublicInstructorSerializer,
+    UpdateInstructorProfileSerializer,
+)
 
 
 class InstructorListCreateView(APIView):
@@ -19,16 +25,49 @@ class InstructorListCreateView(APIView):
 
     def get(self, request):
         profiles = InstructorProfile.objects.select_related('user').all()
-        return success_response(data=InstructorProfileSerializer(profiles, many=True).data)
+        return success_response(
+            data=InstructorProfileSerializer(profiles, many=True, context={'request': request}).data,
+        )
 
     def post(self, request):
         serializer = AdminCreateInstructorSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         profile = serializer.save()
         return success_response(
-            data=InstructorProfileSerializer(profile).data,
+            data=InstructorProfileSerializer(profile, context={'request': request}).data,
             message='Instructor account created successfully.',
             status=status.HTTP_201_CREATED,
+        )
+
+
+class InstructorDetailView(APIView):
+    """PATCH: admin updates an instructor's photo and/or homepage-visibility
+    toggle. Multipart so a photo file can be uploaded alongside the flag."""
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def patch(self, request, pk):
+        profile = get_object_or_404(InstructorProfile, pk=pk)
+        serializer = UpdateInstructorProfileSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(
+            data=InstructorProfileSerializer(profile, context={'request': request}).data,
+            message='Instructor updated successfully.',
+        )
+
+
+class PublicInstructorListView(APIView):
+    """GET: unauthenticated — instructors flagged show_on_homepage, for the
+    public homepage's trainers slideshow."""
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        profiles = InstructorProfile.objects.filter(show_on_homepage=True).select_related('user')
+        return success_response(
+            data=PublicInstructorSerializer(profiles, many=True, context={'request': request}).data,
         )
 
 

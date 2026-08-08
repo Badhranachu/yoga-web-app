@@ -35,10 +35,22 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     password = serializers.CharField(write_only=True, style={'input_type': 'password'})
     password_confirm = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    first_name = serializers.CharField(required=True)
+    phone_number = serializers.CharField(required=True)
 
     class Meta:
         model = User
         fields = ['email', 'password', 'password_confirm', 'first_name', 'last_name', 'phone_number']
+
+    def validate_first_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('Name is required.')
+        return value
+
+    def validate_phone_number(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('WhatsApp number is required.')
+        return value
 
     def validate_email(self, value):
         value = value.lower().strip()
@@ -62,6 +74,53 @@ class RegisterSerializer(serializers.ModelSerializer):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
         return User.objects.create_user(password=password, **validated_data)
+
+
+class AdminCreateAdminSerializer(serializers.ModelSerializer):
+    """Admin-only: creates a new role=admin account. Separate from
+    RegisterSerializer (public self-registration, always role=user) since
+    only an existing admin may grant admin access, and AdminProfile is
+    created via the ensure_admin_profile signal once role=admin is set."""
+
+    password = serializers.CharField(write_only=True, style={'input_type': 'password'})
+    password_confirm = serializers.CharField(write_only=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['email', 'password', 'password_confirm', 'first_name', 'last_name', 'phone_number']
+
+    def validate_first_name(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('Name is required.')
+        return value
+
+    def validate_phone_number(self, value):
+        if not value.strip():
+            raise serializers.ValidationError('WhatsApp number is required.')
+        return value
+
+    def validate_email(self, value):
+        value = value.lower().strip()
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('An account with this email already exists.')
+        return value
+
+    def validate_password(self, value):
+        try:
+            password_validation.validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
+    def validate(self, attrs):
+        if attrs['password'] != attrs['password_confirm']:
+            raise serializers.ValidationError({'password_confirm': "Passwords don't match."})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop('password_confirm')
+        password = validated_data.pop('password')
+        return User.objects.create_user(password=password, role=User.Role.ADMIN, **validated_data)
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):

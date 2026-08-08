@@ -1,4 +1,4 @@
-# EKAM Yoga — Studio Management System
+# Harmony Fusion Studio — Studio Management System
 
 A single React frontend (public website + admin dashboard) backed by a single
 Django modular-monolith API.

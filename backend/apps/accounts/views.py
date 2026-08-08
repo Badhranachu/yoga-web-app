@@ -6,9 +6,12 @@ from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from apps.core.permissions import IsAdminRole
 from apps.core.responses import error_response, success_response
 
+from .models import User
 from .serializers import (
+    AdminCreateAdminSerializer,
     ChangePasswordSerializer,
     EmailTokenObtainPairSerializer,
     ForgotPasswordSerializer,
@@ -37,6 +40,27 @@ class RegisterView(APIView):
         return success_response(
             data=UserSerializer(user).data,
             message='Account created successfully.',
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class AdminListCreateView(APIView):
+    """GET: list all role=admin accounts. POST: an existing admin creates
+    another role=admin account."""
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        admins = User.objects.filter(role=User.Role.ADMIN)
+        return success_response(data=UserSerializer(admins, many=True).data)
+
+    def post(self, request):
+        serializer = AdminCreateAdminSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        return success_response(
+            data=UserSerializer(user).data,
+            message='Admin account created successfully.',
             status=status.HTTP_201_CREATED,
         )
 

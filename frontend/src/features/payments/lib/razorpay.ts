@@ -62,7 +62,7 @@ export const openRazorpayCheckout = async (options: {
     amount: options.amount,
     currency: options.currency,
     order_id: options.orderId,
-    name: 'EKAM Yoga',
+    name: 'Harmony Fusion Studio',
     description: options.description,
     prefill: options.prefillEmail ? { email: options.prefillEmail } : undefined,
     theme: { color: '#D8B46A' },

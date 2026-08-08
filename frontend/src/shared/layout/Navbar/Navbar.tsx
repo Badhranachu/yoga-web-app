@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/Button';
 import { easeOutQuart } from '@/shared/lib/motion';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 const navItems = ['Philosophy', 'Spaces', 'Journeys', 'Trainers'];
 
@@ -12,12 +13,29 @@ const navItems = ['Philosophy', 'Spaces', 'Journeys', 'Trainers'];
 export const Navbar = () => {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // Logged-in members go straight to booking; admins/instructors land on
+  // their own dashboard home (this button is really "go manage your
+  // sessions", and neither role books a class for themselves here).
+  // Signed-out visitors go to login first — matches LoginPage's own
+  // post-login redirect so the destination is consistent either way.
+  const handleBookSession = () => {
+    if (!isAuthenticated) {
+      navigate('/login');
+      return;
+    }
+    if (user?.role === 'admin') navigate('/dashboard');
+    else if (user?.role === 'instructor') navigate('/instructor');
+    else navigate('/account/book');
+  };
 
   return (
     <motion.nav
@@ -34,7 +52,7 @@ export const Navbar = () => {
           to="/"
           className={`text-2xl font-serif tracking-wide transition-colors duration-700 ${scrolled ? 'text-[#2B241E]' : 'text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]'}`}
         >
-          EKAM <span className="text-[#D8B46A] italic">Yoga</span>
+          Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
         </Link>
 
         <div className={`hidden md:flex items-center gap-10 text-sm tracking-widest uppercase transition-colors duration-700 ${scrolled ? 'text-[#786A58]' : 'text-white/90'}`}>
@@ -52,6 +70,8 @@ export const Navbar = () => {
 
         <div className="hidden md:block">
           <Button
+            type="button"
+            onClick={handleBookSession}
             variant={scrolled ? 'primary' : 'outline'}
             className={`!py-3 ${!scrolled ? '!border-white/60 !text-white hover:!border-[#D8B46A] hover:!text-[#D8B46A]' : ''}`}
           >

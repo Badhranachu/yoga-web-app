@@ -13,6 +13,7 @@ export const RegisterPage = () => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [passwordConfirm, setPasswordConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,7 @@ export const RegisterPage = () => {
         password_confirm: passwordConfirm,
         first_name: firstName,
         last_name: lastName,
+        phone_number: phoneNumber,
       });
       await login({ email, password });
       navigate('/account', { replace: true });
@@ -65,6 +67,7 @@ export const RegisterPage = () => {
             label="First Name"
             name="firstName"
             autoComplete="given-name"
+            required
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
           />
@@ -85,6 +88,18 @@ export const RegisterPage = () => {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
+        <div>
+          <TextField
+            label="Phone Number"
+            type="tel"
+            name="phoneNumber"
+            autoComplete="tel"
+            required
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
+          />
+          <p className="mt-1 text-xs text-[#786A58]">Use a number reachable on WhatsApp only.</p>
+        </div>
         <TextField
           label="Password"
           type="password"

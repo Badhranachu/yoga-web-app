@@ -20,6 +20,10 @@ class InstructorProfile(TimeStampedModel):
         related_name='instructor_profile',
     )
     username = models.CharField(max_length=150, unique=True, null=True, blank=True)
+    photo = models.ImageField(upload_to='instructor_photos/', null=True, blank=True)
+    bio = models.TextField(blank=True, default='')
+    show_on_homepage = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'instructors_instructor_profile'

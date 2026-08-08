@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 export type MiniCalendarProps = {
@@ -10,6 +10,13 @@ export type MiniCalendarProps = {
   maxDate: string;
   /** Dates (YYYY-MM-DD) to mark with a small dot indicator. */
   markedDates?: Set<string>;
+  /**
+   * Fires with the currently-visible month (once on mount, then again on
+   * every prev/next navigation) — lets a caller lazy-load just that
+   * month's data instead of fetching the whole [minDate, maxDate] window
+   * up front.
+   */
+  onMonthChange?: (year: number, month: number) => void;
 };
 
 const WEEKDAY_LABELS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
@@ -41,7 +48,7 @@ const parseDateKey = (key: string) => {
 // Month-grid calendar with a caller-supplied [minDate, maxDate] window —
 // prev/next navigation disables at those boundaries so it's impossible to
 // browse to a month with nothing selectable in it.
-export const MiniCalendar = ({ selectedDate, onSelectDate, minDate, maxDate, markedDates }: MiniCalendarProps) => {
+export const MiniCalendar = ({ selectedDate, onSelectDate, minDate, maxDate, markedDates, onMonthChange }: MiniCalendarProps) => {
   const today = useMemo(() => new Date(), []);
   const todayKey = toDateKey(today.getFullYear(), today.getMonth(), today.getDate());
   const effectiveMinDate = minDate ?? todayKey;
@@ -58,6 +65,11 @@ export const MiniCalendar = ({ selectedDate, onSelectDate, minDate, maxDate, mar
   }, [maxDate]);
 
   const [viewMonthStart, setViewMonthStart] = useState(minMonthStart);
+
+  useEffect(() => {
+    onMonthChange?.(viewMonthStart.getFullYear(), viewMonthStart.getMonth());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMonthStart]);
 
   const isAtEarliestMonth = viewMonthStart.getTime() <= minMonthStart.getTime();
   const isAtLatestMonth = viewMonthStart.getTime() >= maxMonthStart.getTime();

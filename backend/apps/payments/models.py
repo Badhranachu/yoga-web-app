@@ -13,7 +13,7 @@ def _generate_transaction_id():
 
 
 def _generate_receipt_number():
-    return f'EKAM-{timezone.localdate().strftime("%Y%m%d")}-{secrets.token_hex(5).upper()}'
+    return f'HFS-{timezone.localdate().strftime("%Y%m%d")}-{secrets.token_hex(5).upper()}'
 
 
 class SubscriptionPlan(TimeStampedModel):

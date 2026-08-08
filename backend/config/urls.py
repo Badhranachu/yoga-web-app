@@ -3,6 +3,8 @@ Root URL configuration. Each domain app owns its own urls.py; this file only
 mounts them under /api/<domain>/, keeping app boundaries explicit.
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path
 
@@ -18,3 +20,6 @@ urlpatterns = [
     path('api/dashboard/', include('apps.dashboard.urls')),
     path('api/reports/', include('apps.reports.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

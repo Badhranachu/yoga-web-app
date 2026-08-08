@@ -57,6 +57,12 @@ class BookingStateError(Exception):
     """Raised for invalid booking state transitions (e.g. marking an already-attended booking attended again)."""
 
 
+class AttendanceWindowError(BookingStateError):
+    """Raised when an instructor tries to self-mark attendance outside the
+    allowed window around the slot's start time (see
+    instructor_mark_attended)."""
+
+
 class BookingChangeRequestError(Exception):
     """Raised for invalid transfer/reschedule request state or permissions."""
 
@@ -127,7 +133,11 @@ def _next_available_slot(slot: Slot) -> Slot | None:
 def _validate_target_slot(slot: Slot, current_slot_id: int) -> None:
     if slot.pk == current_slot_id:
         raise RequestedSlotUnavailableError('The requested slot must be different from the current slot.')
-    if slot.date < timezone.localdate():
+    # Date-only would wrongly accept a same-day slot whose time has
+    # already elapsed (e.g. picking a 9 AM slot at 8 PM) — compare the
+    # full end datetime instead.
+    now = timezone.localtime()
+    if slot.date < now.date() or (slot.date == now.date() and slot.end_time <= now.time()):
         raise RequestedSlotUnavailableError('The requested slot is in the past.')
     if slot.leave_id:
         raise RequestedSlotUnavailableError('The requested slot is unavailable due to studio leave.')
@@ -136,83 +146,65 @@ def _validate_target_slot(slot: Slot, current_slot_id: int) -> None:
 
 
 def _notify_change_request(change_request: BookingChangeRequest) -> None:
-    """Send the existing email-based notification mechanism and audit delivery."""
+    """Send the existing email-based notification mechanism and audit
+    delivery. TRANSFER-only — the RESCHEDULE request_type this used to
+    also handle was retired in favor of self_reschedule_booking (member
+    reschedules are instant now, no approval to notify anyone about).
+    """
     booking = change_request.booking
-    if change_request.request_type == BookingChangeRequest.RequestType.TRANSFER:
-        recipients = [booking.user.email]
-        subject = 'Action required: your EKAM Yoga booking transfer'
-        greeting = booking.user.first_name or 'there'
-        action = 'Please accept or reject this transfer request from your account.'
-    else:
-        recipients = list(
-            booking.user.__class__.objects.filter(
-                role=booking.user.Role.ADMIN,
-                is_active=True,
-            ).values_list('email', flat=True)
-        )
-        subject = 'Action required: booking reschedule request'
-        greeting = 'Admin'
-        action = 'Please approve or reject this reschedule request from the dashboard.'
+    recipients = [booking.user.email]
+    subject = 'Action required: your Harmony Fusion Studio booking transfer'
+    greeting = booking.user.first_name or 'there'
+    action = 'Please accept or reject this transfer request from your account.'
 
-        NotificationService.notify_admins(
-            Notification.NotificationType.RESCHEDULE_REQUEST,
-            'Reschedule Request',
-            f'{booking.user.email} requested a new class time: {change_request.requested_date} '
-            f'at {change_request.requested_start_time.strftime("%H:%M")}.',
-            related_type='booking_change_request',
-            related_id=change_request.pk,
-            action_url='/dashboard/bookings',
-            dedupe_key=f'reschedule-request:{change_request.pk}',
-        )
+    NotificationService.create(
+        booking.user,
+        Notification.NotificationType.TRANSFER_REQUEST,
+        'Transfer Request',
+        f'An admin requested to move your booking to {change_request.requested_date} '
+        f'at {change_request.requested_start_time.strftime("%H:%M")}.',
+        related_type='booking_change_request',
+        related_id=change_request.pk,
+        action_url='/account',
+        dedupe_key=f'transfer-request:{change_request.pk}',
+    )
 
-    if change_request.request_type == BookingChangeRequest.RequestType.TRANSFER:
-        NotificationService.create(
-            booking.user,
-            Notification.NotificationType.TRANSFER_REQUEST,
-            'Transfer Request',
-            f'An admin requested to move your booking to {change_request.requested_date} '
-            f'at {change_request.requested_start_time.strftime("%H:%M")}.',
-            related_type='booking_change_request',
-            related_id=change_request.pk,
-            action_url='/account',
-            dedupe_key=f'transfer-request:{change_request.pk}',
-        )
-
-    if recipients:
-        send_mail(
-            subject=subject,
-            message=(
-                f'Hello {greeting},\n\n'
-                f'Current slot: {change_request.current_date} '
-                f'{change_request.current_start_time.strftime("%H:%M")}–'
-                f'{change_request.current_end_time.strftime("%H:%M")}\n'
-                f'Requested slot: {change_request.requested_date} '
-                f'{change_request.requested_start_time.strftime("%H:%M")}–'
-                f'{change_request.requested_end_time.strftime("%H:%M")}\n\n'
-                f'{action}'
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=recipients,
-            fail_silently=True,
-        )
+    send_mail(
+        subject=subject,
+        message=(
+            f'Hello {greeting},\n\n'
+            f'Current slot: {change_request.current_date} '
+            f'{change_request.current_start_time.strftime("%H:%M")}–'
+            f'{change_request.current_end_time.strftime("%H:%M")}\n'
+            f'Requested slot: {change_request.requested_date} '
+            f'{change_request.requested_start_time.strftime("%H:%M")}–'
+            f'{change_request.requested_end_time.strftime("%H:%M")}\n\n'
+            f'{action}'
+        ),
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        recipient_list=recipients,
+        fail_silently=True,
+    )
 
     change_request.notification_sent_at = timezone.now()
     change_request.save(update_fields=['notification_sent_at', 'updated_at'])
 
 
 @transaction.atomic
-def _create_change_request(user, booking_id: int, slot_id: int, request_type: str) -> BookingChangeRequest:
+def create_transfer_request(admin, booking_id: int, slot_id: int) -> BookingChangeRequest:
+    """Admin-initiated: moves a MEMBER's booking, but only takes effect once
+    the member approves it (see approve_change_request) — the member owns
+    the decision since it's their class being moved without them asking.
+    Member-initiated reschedules are instant instead (see
+    self_reschedule_booking) — a member doesn't need anyone's permission
+    to move their own booking to another open slot.
+    """
     booking = Booking.objects.select_for_update().select_related('slot', 'user').get(pk=booking_id)
 
     if booking.status != Booking.Status.BOOKED:
-        raise BookingChangeRequestError('Only booked reservations can be transferred or rescheduled.')
-
-    if request_type == BookingChangeRequest.RequestType.TRANSFER:
-        if not user.is_admin:
-            raise BookingChangeRequestError('Only an admin can create a transfer request.')
-    elif booking.user_id != user.pk:
-        raise BookingChangeRequestError('You can only reschedule your own booking.')
-
+        raise BookingChangeRequestError('Only booked reservations can be transferred.')
+    if not admin.is_admin:
+        raise BookingChangeRequestError('Only an admin can create a transfer request.')
     if BookingChangeRequest.objects.filter(
         booking=booking,
         status=BookingChangeRequest.Status.PENDING,
@@ -227,8 +219,8 @@ def _create_change_request(user, booking_id: int, slot_id: int, request_type: st
 
     change_request = BookingChangeRequest.objects.create(
         booking=booking,
-        request_type=request_type,
-        requested_by=user,
+        request_type=BookingChangeRequest.RequestType.TRANSFER,
+        requested_by=admin,
         current_slot=booking.slot,
         requested_slot=target,
         current_date=booking.slot.date,
@@ -242,12 +234,43 @@ def _create_change_request(user, booking_id: int, slot_id: int, request_type: st
     return change_request
 
 
-def create_transfer_request(admin, booking_id: int, slot_id: int) -> BookingChangeRequest:
-    return _create_change_request(admin, booking_id, slot_id, BookingChangeRequest.RequestType.TRANSFER)
+@transaction.atomic
+def self_reschedule_booking(user, booking_id: int, slot_id: int) -> Booking:
+    """Member-initiated: instantly moves the member's own booking to a
+    different open slot — no admin approval step, unlike the admin's
+    transfer flow above. Same locking and target-slot validation as
+    approve_change_request, just without any BookingChangeRequest
+    bookkeeping, since there's no approval decision to record.
+    """
+    booking = Booking.objects.select_for_update().select_related('slot', 'user').get(pk=booking_id)
 
+    if booking.user_id != user.pk:
+        raise BookingChangeRequestError('You can only reschedule your own booking.')
+    if booking.status != Booking.Status.BOOKED:
+        raise BookingChangeRequestError('Only booked reservations can be rescheduled.')
 
-def create_reschedule_request(user, booking_id: int, slot_id: int) -> BookingChangeRequest:
-    return _create_change_request(user, booking_id, slot_id, BookingChangeRequest.RequestType.RESCHEDULE)
+    try:
+        target_slot = Slot.objects.select_for_update().get(pk=slot_id)
+    except Slot.DoesNotExist as exc:
+        raise RequestedSlotUnavailableError('The requested slot does not exist.') from exc
+    _validate_target_slot(target_slot, booking.slot_id)
+
+    old_slot = booking.slot
+    booking.slot = target_slot
+    booking.save(update_fields=['slot', 'updated_at'])
+
+    NotificationService.create(
+        user,
+        Notification.NotificationType.RESCHEDULE_APPROVED,
+        'Class Rescheduled',
+        f'Your class was moved from {old_slot.date} at {old_slot.start_time.strftime("%H:%M")} '
+        f'to {target_slot.date} at {target_slot.start_time.strftime("%H:%M")}.',
+        related_type='booking',
+        related_id=booking.pk,
+        action_url='/account',
+        dedupe_key=f'self-reschedule:{booking.pk}:{target_slot.pk}',
+    )
+    return booking
 
 
 def _lock_change_request(request_id: int):
@@ -260,11 +283,8 @@ def _lock_change_request(request_id: int):
 
 
 def _validate_decision_actor(change_request: BookingChangeRequest, actor) -> None:
-    if change_request.request_type == BookingChangeRequest.RequestType.TRANSFER:
-        if change_request.booking.user_id != actor.pk:
-            raise BookingChangeRequestError('Only the booking owner can respond to a transfer request.')
-    elif not actor.is_admin:
-        raise BookingChangeRequestError('Only an admin can respond to a reschedule request.')
+    if change_request.booking.user_id != actor.pk:
+        raise BookingChangeRequestError('Only the booking owner can respond to a transfer request.')
 
 
 @transaction.atomic
@@ -296,26 +316,14 @@ def approve_change_request(request_id: int, actor) -> BookingChangeRequest:
     change_request.booking = booking
     change_request.requested_slot = target_slot
 
-    if change_request.request_type == BookingChangeRequest.RequestType.TRANSFER:
-        recipient = booking.user
-        notification_type = Notification.NotificationType.TRANSFER_APPROVED
-        title = 'Transfer Approved'
-        message = f'Your booking was moved to {target_slot.date} at {target_slot.start_time.strftime("%H:%M")}.'
-        action_url = '/account'
-    else:
-        recipient = change_request.requested_by
-        notification_type = Notification.NotificationType.RESCHEDULE_APPROVED
-        title = 'Reschedule Approved'
-        message = f'Your reschedule request was approved for {target_slot.date} at {target_slot.start_time.strftime("%H:%M")}.'
-        action_url = '/account'
     NotificationService.create(
-        recipient,
-        notification_type,
-        title,
-        message,
+        booking.user,
+        Notification.NotificationType.TRANSFER_APPROVED,
+        'Transfer Approved',
+        f'Your booking was moved to {target_slot.date} at {target_slot.start_time.strftime("%H:%M")}.',
         related_type='booking_change_request',
         related_id=change_request.pk,
-        action_url=action_url,
+        action_url='/account',
         dedupe_key=f'change-approved:{change_request.pk}',
     )
     return change_request
@@ -335,24 +343,14 @@ def reject_change_request(request_id: int, actor, reason: str = '') -> BookingCh
     change_request.decision_reason = reason[:255]
     change_request.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'decision_reason', 'updated_at'])
 
-    if change_request.request_type == BookingChangeRequest.RequestType.TRANSFER:
-        recipient = change_request.booking.user
-        notification_type = Notification.NotificationType.TRANSFER_REJECTED
-        title = 'Transfer Rejected'
-        action_url = '/account'
-    else:
-        recipient = change_request.requested_by
-        notification_type = Notification.NotificationType.RESCHEDULE_REJECTED
-        title = 'Reschedule Rejected'
-        action_url = '/account'
     NotificationService.create(
-        recipient,
-        notification_type,
-        title,
+        change_request.booking.user,
+        Notification.NotificationType.TRANSFER_REJECTED,
+        'Transfer Rejected',
         f'Your booking change request was rejected{f": {reason}" if reason else "."}',
         related_type='booking_change_request',
         related_id=change_request.pk,
-        action_url=action_url,
+        action_url='/account',
         dedupe_key=f'change-rejected:{change_request.pk}',
     )
     return change_request
@@ -474,3 +472,114 @@ def revert_attended(booking: Booking) -> Booking:
     locked.save(update_fields=['status', 'attended_at', 'updated_at'])
 
     return locked
+
+
+# Self-attendance window: an instructor can mark their own assigned
+# booking attended starting a few minutes before the slot's official
+# start time (early arrivals shouldn't be blocked) through 10 minutes
+# after it (late enough to confirm the class actually started, not so
+# late that a forgotten class from hours ago could be waved through).
+INSTRUCTOR_ATTEND_WINDOW_BEFORE_MINUTES = 5
+INSTRUCTOR_ATTEND_WINDOW_AFTER_MINUTES = 10
+
+
+def _minutes_from_slot_start(slot: Slot, now) -> float:
+    """Minutes elapsed since the slot's start (negative if still ahead of
+    it), computed from date+time-of-day components directly rather than
+    building tz-aware datetimes — mirrors the comparison style already
+    used in _validate_target_slot, and sidesteps any DST/tz edge cases
+    since everything here is studio-local wall-clock time.
+    """
+    day_delta_minutes = (slot.date - now.date()).days * 24 * 60
+    start_minutes = slot.start_time.hour * 60 + slot.start_time.minute
+    now_minutes = now.hour * 60 + now.minute
+    return day_delta_minutes + (now_minutes - start_minutes)
+
+
+@transaction.atomic
+def instructor_mark_attended(instructor_user, booking_id: int) -> Booking:
+    """Lets the ASSIGNED INSTRUCTOR (not just an admin) mark their own
+    booking attended, but only within a short window around the slot's
+    start time — see INSTRUCTOR_ATTEND_WINDOW_*_MINUTES. Delegates the
+    actual state transition to mark_attended so both entry points share
+    one implementation of what "attended" means.
+    """
+    locked = Booking.objects.select_for_update().select_related('slot', 'instructor__user').get(pk=booking_id)
+
+    if locked.instructor_id is None or locked.instructor.user_id != instructor_user.pk:
+        raise BookingStateError('You can only mark attendance for classes assigned to you.')
+
+    now = timezone.localtime()
+    elapsed = _minutes_from_slot_start(locked.slot, now)
+    if elapsed < -INSTRUCTOR_ATTEND_WINDOW_BEFORE_MINUTES:
+        raise AttendanceWindowError('Too early — attendance can be marked closer to the class start time.')
+    if elapsed > INSTRUCTOR_ATTEND_WINDOW_AFTER_MINUTES:
+        raise AttendanceWindowError('Too late — this class\'s attendance window has closed.')
+
+    return mark_attended(locked)
+
+
+def get_instructor_stats(instructor_profile) -> dict:
+    """Overview numbers for the instructor's own dashboard: hours worked
+    and class counts, split by today / this month / all-time.
+
+    "Hours worked" and "attended" cover every class whose slot has
+    already ended, whether or not it was ever marked attended — per the
+    business rule that a class counts as worked once its time has
+    passed, independent of member attendance. "Expired, not attempted"
+    is the subset of those that were never marked attended at all — the
+    one figure that does depend on attendance being recorded.
+    """
+    now = timezone.localtime()
+    today = now.date()
+    month_start = today.replace(day=1)
+
+    bookings = list(Booking.objects.filter(instructor=instructor_profile).select_related('slot'))
+
+    def has_ended(slot) -> bool:
+        return slot.date < today or (slot.date == today and slot.end_time <= now.time())
+
+    def duration_hours(slot) -> float:
+        start_minutes = slot.start_time.hour * 60 + slot.start_time.minute
+        end_minutes = slot.end_time.hour * 60 + slot.end_time.minute
+        return (end_minutes - start_minutes) / 60
+
+    attended = [b for b in bookings if b.status == Booking.Status.ATTENDED]
+    expired_unattempted = [b for b in bookings if b.status == Booking.Status.BOOKED and has_ended(b.slot)]
+    past = attended + expired_unattempted
+    upcoming = [b for b in bookings if b.status == Booking.Status.BOOKED and not has_ended(b.slot)]
+
+    def is_today(d) -> bool:
+        return d == today
+
+    def is_this_month(d) -> bool:
+        return month_start <= d <= today
+
+    def bucket(items, predicate=lambda _d: True):
+        matched = [b for b in items if predicate(b.slot.date)]
+        return {'count': len(matched), 'hours': round(sum(duration_hours(b.slot) for b in matched), 2)}
+
+    def classes_bucket(predicate):
+        matched = [b for b in bookings if predicate(b.slot.date)]
+        return len(matched)
+
+    return {
+        'hours_worked': {
+            'today': bucket(past, is_today)['hours'],
+            'month': bucket(past, is_this_month)['hours'],
+            'total': bucket(past)['hours'],
+        },
+        'attended': {
+            'today': bucket(attended, is_today)['count'],
+            'month': bucket(attended, is_this_month)['count'],
+            'total': bucket(attended)['count'],
+        },
+        'expired_unattempted': {
+            'today': bucket(expired_unattempted, is_today)['count'],
+            'month': bucket(expired_unattempted, is_this_month)['count'],
+            'total': bucket(expired_unattempted)['count'],
+        },
+        'classes_today_total': classes_bucket(is_today),
+        'classes_month_total': classes_bucket(is_this_month),
+        'upcoming_count': len(upcoming),
+    }

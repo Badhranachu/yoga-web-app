@@ -58,7 +58,7 @@ def build_admin_overview():
         'todays_revenue': _money(successful.filter(created_at__date=today).aggregate(total=Sum('amount'))['total']),
         'monthly_revenue': _money(successful.filter(created_at__date__gte=month_start, created_at__date__lte=today).aggregate(total=Sum('amount'))['total']),
         'total_revenue': _money(successful.aggregate(total=Sum('amount'))['total']),
-        'registered_users': User.objects.filter(is_active=True).count(),
+        'registered_users': User.objects.filter(is_active=True, role=User.Role.USER).count(),
         'active_subscriptions': UserSubscription.objects.filter(
             status=UserSubscription.Status.ACTIVE,
             end_date__gte=today,

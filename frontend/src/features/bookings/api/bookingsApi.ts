@@ -8,10 +8,20 @@ import type {
   BookingConflictData,
   CreateBookingPayload,
   InstructorBooking,
+  InstructorStats,
 } from '../types';
 
 export type BookingListParams = {
   page?: number;
+};
+
+export type EffectiveBookingStatus = 'booked' | 'attended' | 'expired';
+
+export type BookingHistoryParams = {
+  page?: number;
+  status?: EffectiveBookingStatus;
+  date_from?: string;
+  date_to?: string;
 };
 
 export type BookingChangeRequestPayload = {
@@ -38,6 +48,11 @@ export const bookingsApi = {
 
   getMyBookings: async (params: BookingListParams = {}): Promise<PaginatedResponse<Booking>> => {
     const { data } = await apiClient.get<PaginatedResponse<Booking>>('/bookings/me/', { params });
+    return data;
+  },
+
+  getMyBookingHistory: async (params: BookingHistoryParams = {}): Promise<PaginatedResponse<Booking>> => {
+    const { data } = await apiClient.get<PaginatedResponse<Booking>>('/bookings/me/history/', { params });
     return data;
   },
 
@@ -68,13 +83,28 @@ export const bookingsApi = {
     return data.data;
   },
 
+  // Instructor self-service — only valid within a short window around the
+  // slot's start time (see backend services.instructor_mark_attended).
+  instructorMarkAttended: async (id: number): Promise<InstructorBooking> => {
+    const { data } = await apiClient.post<ApiSuccess<InstructorBooking>>(`/bookings/${id}/instructor-attend/`);
+    return data.data;
+  },
+
+  getInstructorStats: async (): Promise<InstructorStats> => {
+    const { data } = await apiClient.get<ApiSuccess<InstructorStats>>('/bookings/instructor/stats/');
+    return data.data;
+  },
+
   createTransferRequest: async (payload: BookingChangeRequestPayload): Promise<BookingChangeRequest> => {
     const { data } = await apiClient.post<ApiSuccess<BookingChangeRequest>>('/bookings/transfer-requests/', payload);
     return data.data;
   },
 
-  createRescheduleRequest: async (payload: BookingChangeRequestPayload): Promise<BookingChangeRequest> => {
-    const { data } = await apiClient.post<ApiSuccess<BookingChangeRequest>>('/bookings/reschedule-requests/', payload);
+  // Instant, member-initiated — no admin approval, unlike
+  // createTransferRequest (admin-initiated, still needs the member to
+  // accept it via approveChangeRequest).
+  selfReschedule: async (payload: BookingChangeRequestPayload): Promise<Booking> => {
+    const { data } = await apiClient.post<ApiSuccess<Booking>>('/bookings/reschedule/', payload);
     return data.data;
   },
 

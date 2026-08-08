@@ -20,7 +20,7 @@ export const DashboardSidebar = ({ navItems, eyebrow = 'Studio Dashboard' }: Das
   <aside className="w-20 shrink-0 bg-[#2B241E] text-[#F5EFE5] min-h-screen flex flex-col md:w-64">
     <div className="border-b border-[#D8B46A]/10 px-3 py-8 md:px-6">
       <div className="text-center text-xl font-serif tracking-wide md:text-left">
-        EKAM <span className="text-[#D8B46A] italic">Yoga</span>
+        Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
       </div>
       <div className="mt-1 hidden text-[10px] uppercase tracking-[0.3em] text-[#F5EFE5]/40 md:block">{eyebrow}</div>
     </div>

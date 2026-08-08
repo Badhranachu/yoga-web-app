@@ -34,6 +34,21 @@ export type BookingConflictData = {
   suggested_slot: Slot | null;
 };
 
+export type InstructorStatBucket = {
+  today: number;
+  month: number;
+  total: number;
+};
+
+export type InstructorStats = {
+  hours_worked: InstructorStatBucket;
+  attended: InstructorStatBucket;
+  expired_unattempted: InstructorStatBucket;
+  classes_today_total: number;
+  classes_month_total: number;
+  upcoming_count: number;
+};
+
 export type BookingChangeRequestType = 'transfer' | 'reschedule';
 export type BookingChangeRequestStatus = 'pending' | 'approved' | 'rejected';
 

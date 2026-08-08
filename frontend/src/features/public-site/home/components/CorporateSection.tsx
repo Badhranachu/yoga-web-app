@@ -23,7 +23,7 @@ export const CorporateSection = () => (
             className="absolute -bottom-10 -right-10 lg:right-[-10%] glass-panel bg-[#E8DDCC]/10 p-8 rounded-2xl max-w-xs backdrop-blur-xl border border-white/10"
           >
             <div className="text-[#D8B46A] text-4xl font-serif mb-2">35+</div>
-            <div className="text-sm text-[#F5EFE5]/80">UAE companies trust Ekam to bring balance to their boardrooms.</div>
+            <div className="text-sm text-[#F5EFE5]/80">UAE companies trust Harmony Fusion Studio to bring balance to their boardrooms.</div>
           </motion.div>
         </div>
 

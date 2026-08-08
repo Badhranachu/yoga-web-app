@@ -22,7 +22,7 @@ export const AuthCard = ({ title, subtitle, children, footer }: AuthCardProps) =
       className="w-full max-w-md"
     >
       <Link to="/" className="flex justify-center mb-10 text-2xl font-serif tracking-wide text-[#2B241E]">
-        EKAM <span className="text-[#D8B46A] italic">Yoga</span>
+        Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
       </Link>
 
       <div className="glass-panel bg-white/40 rounded-3xl p-8 md:p-10 border border-white/50 shadow-lg">

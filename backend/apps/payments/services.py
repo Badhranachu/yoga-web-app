@@ -518,7 +518,7 @@ def send_low_usage_reminders() -> dict:
         user = subscription.user
         try:
             send_mail(
-                subject='Your EKAM Yoga sessions are about to expire',
+                subject='Your Harmony Fusion Studio sessions are about to expire',
                 message=(
                     f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
                     f"Your subscription cycle ends in {LOW_USAGE_REMINDER_DAYS_BEFORE_END} days "

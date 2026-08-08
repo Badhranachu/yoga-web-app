@@ -43,7 +43,7 @@ is verified:
          "currency": "INR",
          "status": "successful",
          "receipt": {
-           "receipt_number": "EKAM-20260801-..."
+           "receipt_number": "HFS-20260801-..."
          }
        }
      }

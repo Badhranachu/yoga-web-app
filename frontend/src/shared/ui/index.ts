@@ -4,6 +4,8 @@ export * from './TextField';
 export * from './FormFeedback';
 export * from './Toast';
 export * from './DateInput';
+export * from './Pagination';
+export * from './LoadingBar';
 export * from './Toggle';
 export * from './TimePicker';
 export * from './MiniCalendar';

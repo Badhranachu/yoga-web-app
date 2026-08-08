@@ -32,10 +32,10 @@ def _draw_header(c: canvas.Canvas) -> float:
 
     c.setFillColor(INK)
     c.setFont('Helvetica-Bold', 26)
-    c.drawString(MARGIN, top - 24 * mm, 'EKAM')
+    c.drawString(MARGIN, top - 24 * mm, 'Harmony')
     c.setFillColor(GOLD)
     c.setFont('Helvetica-Oblique', 26)
-    c.drawString(MARGIN + 58, top - 24 * mm, 'Yoga')
+    c.drawString(MARGIN + 110, top - 24 * mm, 'Fusion Studio')
 
     c.setFillColor(BROWN)
     c.setFont('Helvetica', 9)
@@ -119,7 +119,7 @@ def render_receipt_pdf(receipt) -> bytes:
 
     c.setFillColor(BROWN)
     c.setFont('Helvetica', 8)
-    c.drawString(MARGIN, cursor, 'Thank you for practicing with EKAM Yoga.')
+    c.drawString(MARGIN, cursor, 'Thank you for practicing with Harmony Fusion Studio.')
     c.drawRightString(PAGE_WIDTH - MARGIN, cursor, 'This is a system-generated receipt.')
 
     c.showPage()

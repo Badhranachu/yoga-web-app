@@ -27,12 +27,12 @@ const footerLinkColumns = [
 export const Footer = () => {
   return (
     <footer className="bg-[#2B241E] text-[#F5EFE5] pt-32 pb-10 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[30vw] font-serif text-[#F5EFE5]/5 whitespace-nowrap select-none pointer-events-none z-0">
-        EKAM
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20vw] font-serif text-[#F5EFE5]/5 whitespace-nowrap select-none pointer-events-none z-0">
+        HARMONY
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-16 items-center mb-24 border-b border-[#D8B46A]/20 pb-20">
+        <div className="grid lg:grid-cols-2 gap-16 items-center mb-24 pb-20">
           <div>
             <h2 className="text-5xl md:text-7xl font-serif mb-8">
               Ready when<br />
@@ -46,8 +46,8 @@ export const Footer = () => {
               <a href="tel:+97140000000" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
                 <Phone size={16} strokeWidth={1.5} /> +971 4 000 0000
               </a>
-              <a href="mailto:hello@ekamyoga.ae" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
-                <Mail size={16} strokeWidth={1.5} /> hello@ekamyoga.ae
+              <a href="mailto:hello@harmonyfusionstudio.ae" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
+                <Mail size={16} strokeWidth={1.5} /> hello@harmonyfusionstudio.ae
               </a>
             </div>
 
@@ -90,7 +90,7 @@ export const Footer = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-x-8 gap-y-12 pb-16 border-b border-[#D8B46A]/10">
           <div className="col-span-2 md:col-span-1 pr-4">
             <div className="text-2xl font-serif mb-4">
-              EKAM <span className="text-[#D8B46A] italic">Yoga</span>
+              Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
             </div>
             <p className="text-sm text-[#F5EFE5]/50 leading-relaxed max-w-xs">
               Luxury desert wellness across the UAE — live studio, online, and corporate yoga, taught with intention.
@@ -126,7 +126,7 @@ export const Footer = () => {
         </div>
 
         <div className="flex flex-col md:flex-row justify-between items-center gap-6 pt-10 text-sm text-[#F5EFE5]/40">
-          <p>© 2026 Ekam Yoga. Dubai AFZA Licensed.</p>
+          <p>© 2026 Harmony Fusion Studio. Dubai AFZA Licensed.</p>
           <div className="flex items-center gap-6">
             {socialLinks.map(({ name, href, Icon }) => (
               <a key={name} href={href} aria-label={name} className="hover:text-[#D8B46A] transition-colors">
