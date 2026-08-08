@@ -4,13 +4,13 @@ import { Button } from '@/shared/ui/Button';
 import { corporateOfferings } from '../data/homeContent';
 
 export const CorporateSection = () => (
-  <RevealSection className="bg-[#2B241E] text-[#F5EFE5]">
+  <RevealSection className="bg-[#2B241E] text-[#F5EFE5] overflow-hidden">
     <div className="container mx-auto px-6 md:px-12">
       <div className="grid lg:grid-cols-2 gap-16 items-center">
         <div className="relative">
           <div className="aspect-[4/5] rounded-3xl overflow-hidden relative">
             <img
-              src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?q=80&w=1000&auto=format&fit=crop"
+              src="/assets/main.jpg"
               alt="Corporate Wellness"
               className="w-full h-full object-cover opacity-80"
             />
@@ -20,10 +20,10 @@ export const CorporateSection = () => (
             initial={{ y: 50, opacity: 0 }}
             whileInView={{ y: 0, opacity: 1 }}
             viewport={{ once: true }}
-            className="absolute -bottom-10 -right-10 lg:right-[-10%] glass-panel bg-[#E8DDCC]/10 p-8 rounded-2xl max-w-xs backdrop-blur-xl border border-white/10"
+            className="absolute -bottom-10 right-4 lg:right-[-10%] glass-panel bg-[#E8DDCC]/10 p-8 rounded-2xl max-w-xs backdrop-blur-xl border border-white/10"
           >
-            <div className="text-[#D8B46A] text-4xl font-serif mb-2">35+</div>
-            <div className="text-sm text-[#F5EFE5]/80">UAE companies trust Harmony Fusion Studio to bring balance to their boardrooms.</div>
+            <div className="text-[#D8B46A] text-4xl font-serif mb-2">4 Years</div>
+            <div className="text-sm text-[#F5EFE5]/80">of excellence bringing balance to UAE boardrooms.</div>
           </motion.div>
         </div>
 

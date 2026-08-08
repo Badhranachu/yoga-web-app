@@ -299,7 +299,7 @@ export const InstructorLeavePage = () => {
 
         {isMultiDay ? (
           <div className="rounded-2xl border border-[#2B241E]/10 bg-white/40 p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-widest text-[#786A58]">From</label>
                 <DateInput
@@ -460,7 +460,7 @@ export const InstructorLeavePage = () => {
               return (
                 <div
                   key={first.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[#2B241E]/10 px-3 py-2.5 text-sm"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2B241E]/10 px-3 py-2.5 text-sm"
                 >
                   <div>
                     <div className="text-[#2B241E]">

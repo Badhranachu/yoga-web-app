@@ -71,7 +71,7 @@ export const PaymentsPage = () => {
           <h3 className="font-serif text-xl text-[#2B241E] mb-3">Payment History</h3>
           <div className="space-y-2">
             {payments.map((payment) => (
-              <div key={payment.id} className="flex items-center justify-between gap-4 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm">
+              <div key={payment.id} className="flex flex-col items-start justify-between gap-2 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4">
                 <div>
                   <div className="text-[#2B241E]">{payment.user_email} · {payment.receipt.receipt_number}</div>
                   <div className="text-[#786A58]">{payment.amount} {payment.currency} · {payment.status}</div>

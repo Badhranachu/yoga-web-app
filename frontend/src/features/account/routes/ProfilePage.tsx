@@ -72,26 +72,26 @@ const ProfileDetailsCard = () => {
 
         <FormSuccess message={successMessage} />
 
-        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 text-sm">
+        <dl className="grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
           <div>
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">First Name</dt>
-            <dd className="text-[#2B241E]">{user.first_name || '—'}</dd>
+            <dd className="text-[#2B241E] break-words">{user.first_name || '—'}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">Last Name</dt>
-            <dd className="text-[#2B241E]">{user.last_name || '—'}</dd>
+            <dd className="text-[#2B241E] break-words">{user.last_name || '—'}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">Phone Number</dt>
-            <dd className="text-[#2B241E]">{user.phone_number || '—'}</dd>
+            <dd className="text-[#2B241E] break-words">{user.phone_number || '—'}</dd>
           </div>
           <div>
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">Age</dt>
             <dd className="text-[#2B241E]">{user.age ?? '—'}</dd>
           </div>
-          <div className="col-span-2">
+          <div className="sm:col-span-2">
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">Address</dt>
-            <dd className="text-[#2B241E]">{user.address || '—'}</dd>
+            <dd className="text-[#2B241E] break-words">{user.address || '—'}</dd>
           </div>
         </dl>
       </div>
@@ -116,11 +116,11 @@ const ProfileDetailsCard = () => {
       <FormError message={error} />
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="First Name" name="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} />
           <TextField label="Last Name" name="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <TextField label="Phone Number" name="phoneNumber" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} />
           <TextField label="Age" name="age" type="number" min={1} max={129} value={age} onChange={(e) => setAge(e.target.value)} />
         </div>
@@ -144,7 +144,7 @@ export const ProfilePage = () => {
   if (!user) return null;
 
   return (
-    <div className="max-w-lg space-y-8">
+    <div className="w-full max-w-lg space-y-8">
       <div>
         <h2 className="font-serif text-2xl text-[#2B241E] mb-1">My Profile</h2>
         <p className="text-sm text-[#786A58]">{user.email}</p>

@@ -48,7 +48,7 @@ export const BookingChangeDialog = ({
   useBodyScrollLock();
   return (
   <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/45 px-4" role="presentation">
-    <div role="dialog" aria-modal="true" aria-labelledby="booking-change-title" className="w-full max-w-md rounded-3xl border border-white/60 bg-[#F5EFE5] p-7 shadow-2xl">
+    <div role="dialog" aria-modal="true" aria-labelledby="booking-change-title" className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/60 bg-[#F5EFE5] p-7 shadow-2xl">
       <h3 id="booking-change-title" className="font-serif text-2xl text-[#2B241E]">{title}</h3>
       <div className="mt-6 grid gap-5 rounded-2xl border border-[#2B241E]/10 bg-white/35 p-4 sm:grid-cols-2">
         <SlotSummary label="Current Slot" slot={booking.slot} />

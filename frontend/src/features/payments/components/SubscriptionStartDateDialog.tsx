@@ -38,7 +38,7 @@ export const SubscriptionStartDateDialog = ({ options, isSubmitting, onConfirm, 
         role="dialog"
         aria-modal="true"
         aria-labelledby="start-date-title"
-        className="w-full max-w-md rounded-3xl border border-white/60 bg-[#F5EFE5] p-7 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-3xl border border-white/60 bg-[#F5EFE5] p-7 shadow-2xl"
       >
         <h3 id="start-date-title" className="font-serif text-2xl text-[#2B241E]">
           {options.action === 'renew' ? 'Choose Activation Date' : 'Choose Start Date'}
@@ -54,7 +54,7 @@ export const SubscriptionStartDateDialog = ({ options, isSubmitting, onConfirm, 
           </div>
         )}
 
-        <div className="mt-5 grid grid-cols-2 gap-4 text-xs text-[#786A58]">
+        <div className="mt-5 grid grid-cols-1 gap-4 text-xs text-[#786A58] sm:grid-cols-2">
           <div>
             <div className="uppercase tracking-widest">Earliest</div>
             <div className="mt-1 text-sm text-[#2B241E]">{formatDate(options.earliest)}</div>

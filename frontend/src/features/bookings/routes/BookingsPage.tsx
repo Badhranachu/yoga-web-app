@@ -155,7 +155,7 @@ export const BookingsPage = () => {
           {bookings.map((booking) => (
             <div
               key={booking.id}
-              className="flex items-center justify-between gap-4 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm"
+              className="flex flex-col items-start justify-between gap-3 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm sm:flex-row sm:items-center sm:gap-4"
             >
               <div>
                 <div className="text-[#2B241E] font-medium">
@@ -163,7 +163,7 @@ export const BookingsPage = () => {
                 </div>
                 <div className="text-[#786A58]">{booking.user_email}</div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 {editingId === booking.id ? (
                   <select
                     value={booking.instructor_id ?? ''}

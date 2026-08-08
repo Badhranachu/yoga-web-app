@@ -121,7 +121,7 @@ export const SelfRescheduleDialog = ({ booking, onRescheduled, onClose }: SelfRe
         role="dialog"
         aria-modal="true"
         aria-labelledby="reschedule-title"
-        className="w-full max-w-lg rounded-3xl border border-white/60 bg-cream p-7 shadow-2xl [zoom:0.8]"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl border border-white/60 bg-cream p-7 shadow-2xl sm:[zoom:0.8]"
       >
         <div className="mb-2 flex items-center justify-between">
           <h3 id="reschedule-title" className="font-serif text-2xl text-dark">Reschedule Class</h3>

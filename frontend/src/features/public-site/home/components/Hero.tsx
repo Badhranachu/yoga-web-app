@@ -10,11 +10,11 @@ export const Hero = () => {
 
   return (
     <section className="relative min-h-screen flex items-start justify-center overflow-hidden pt-32 pb-16 md:pt-36">
-      <motion.div style={{ y: y1 }} className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#F5EFE5]/30 via-transparent to-[#F5EFE5] z-10" />
+      <motion.div style={{ y: y1, willChange: 'transform' }} className="absolute inset-0 z-0">
+        <div className="absolute inset-0 bg-gradient-to-b from-[#F5EFE5]/70 via-[#F5EFE5]/60 to-[#F5EFE5] z-10" />
         <img
-          src="https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2574&auto=format&fit=crop"
-          alt="Luxury Desert Architecture"
+          src="/assets/hero.jpg"
+          alt="Silhouette of a yogi in scorpion pose at sunset"
           className="w-full h-[120%] object-cover object-center transform -translate-y-10"
         />
         <div
@@ -31,7 +31,7 @@ export const Hero = () => {
           className="flex items-center gap-4 mb-8"
         >
           <div className="w-12 h-[1px] bg-[#D8B46A]" />
-          <span className="text-sm tracking-widest uppercase text-[#786A58]">Dubai &amp; Online • Est. 2026</span>
+          <span className="text-sm tracking-widest uppercase text-[#786A58]">Dubai &amp; Online • Est. 2020</span>
           <div className="w-12 h-[1px] bg-[#D8B46A]" />
         </motion.div>
 

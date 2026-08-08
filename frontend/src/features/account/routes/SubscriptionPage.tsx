@@ -139,7 +139,7 @@ export const SubscriptionPage = () => {
   const isUsable = subscription !== null;
 
   return (
-    <div className="max-w-2xl">
+    <div className="w-full max-w-2xl">
       <h2 className="font-serif text-2xl text-[#2B241E] mb-2">Subscription</h2>
       <p className="text-[#786A58] text-sm mb-8">
         Manage your membership and session balance.
@@ -151,11 +151,11 @@ export const SubscriptionPage = () => {
       <div className="glass-panel bg-white/40 rounded-3xl p-6 md:p-8 border border-white/50 mb-8">
         {isUsable ? (
           <>
-            <div className="flex items-baseline justify-between mb-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-4">
               <h3 className="font-serif text-xl text-[#2B241E]">Active Membership</h3>
               <span className="text-xs uppercase tracking-widest text-[#D8B46A]">{subscription.status}</span>
             </div>
-            <div className="grid grid-cols-2 gap-6 text-sm mb-6">
+            <div className="grid grid-cols-1 gap-6 text-sm mb-6 sm:grid-cols-2">
               <div>
                 <div className="text-[#786A58] mb-1">Sessions Remaining</div>
                 <div className="text-3xl font-serif text-[#2B241E]">

@@ -181,7 +181,7 @@ export const InstitutionLeavePage = () => {
       <Toast toast={toast} onDismiss={() => setToast(null)} />
 
       <div className="mb-8 rounded-3xl border border-[#2B241E]/10 bg-white/40 p-6">
-        <div className="mb-6 flex items-center justify-between rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 sm:flex-row sm:items-center">
           <div>
             <div className="text-sm text-[#2B241E]">Full Slot Stop</div>
             <div className="text-xs text-[#786A58]">
@@ -200,7 +200,7 @@ export const InstitutionLeavePage = () => {
           {isStopToggling && <span className="ml-3 text-xs text-[#786A58]">Updating…</span>}
         </div>
 
-        <div className="mb-6 flex items-center justify-between rounded-2xl border border-[#2B241E]/10 bg-white/40 px-4 py-3">
+        <div className="mb-6 flex flex-col items-start justify-between gap-3 rounded-2xl border border-[#2B241E]/10 bg-white/40 px-4 py-3 sm:flex-row sm:items-center">
           <div>
             <div className="text-xs text-[#786A58]">
               {isMultiDay
@@ -213,7 +213,7 @@ export const InstitutionLeavePage = () => {
 
         {isMultiDay ? (
           <div className="mb-6 rounded-2xl border border-[#2B241E]/10 bg-white/40 p-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1 block text-xs uppercase tracking-widest text-[#786A58]">From</label>
                 <DateInput
@@ -268,7 +268,7 @@ export const InstitutionLeavePage = () => {
             return (
               <div
                 key={leave.id}
-                className="flex items-center justify-between gap-4 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm"
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm"
               >
                 <div>
                   <div className="text-[#2B241E]">{dateLabel}</div>

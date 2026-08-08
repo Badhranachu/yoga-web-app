@@ -24,7 +24,7 @@ export const services = [
     num: '04',
     title: 'Corporate UAE',
     desc: 'On-site or virtual wellness programs for teams—a standing perk that actually gets used.',
-    img: 'https://images.unsplash.com/photo-1497366216548-37526070297c?q=80&w=1000&auto=format&fit=crop',
+    img: '/assets/corporate.jpg',
   },
 ];
 

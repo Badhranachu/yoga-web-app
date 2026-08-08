@@ -1,6 +1,6 @@
-import { Mail, Phone, MapPin, Clock } from 'lucide-react';
+import { Mail, Phone, MapPin } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
-import { socialLinks } from '@/shared/ui/icons/socialLinks';
+import { socialLinks, whatsappHref } from '@/shared/ui/icons/socialLinks';
 
 const footerLinkColumns = [
   {
@@ -26,9 +26,11 @@ const footerLinkColumns = [
 // Public-site footer, extracted from the original homepage.
 export const Footer = () => {
   return (
-    <footer className="bg-[#2B241E] text-[#F5EFE5] pt-32 pb-10 relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-[20vw] font-serif text-[#F5EFE5]/5 whitespace-nowrap select-none pointer-events-none z-0">
-        HARMONY
+    <footer className="bg-[#2B241E] text-[#F5EFE5] pt-32 pb-10 relative w-full max-w-full overflow-x-hidden">
+      <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 flex justify-center overflow-hidden">
+        <span className="text-[20vw] font-serif text-[#F5EFE5]/5 whitespace-nowrap select-none pointer-events-none z-0">
+          HARMONY
+        </span>
       </div>
 
       <div className="container mx-auto px-6 relative z-10">
@@ -43,11 +45,11 @@ export const Footer = () => {
             </p>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3 mb-10 text-sm text-[#F5EFE5]/70">
-              <a href="tel:+97140000000" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
-                <Phone size={16} strokeWidth={1.5} /> +971 4 000 0000
+              <a href={whatsappHref} target="_blank" rel="noreferrer" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
+                <Phone size={16} strokeWidth={1.5} /> +91 99464 51723
               </a>
-              <a href="mailto:hello@harmonyfusionstudio.ae" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
-                <Mail size={16} strokeWidth={1.5} /> hello@harmonyfusionstudio.ae
+              <a href="mailto:fusionharmony6@gmail.com" className="flex items-center gap-2 hover:text-[#D8B46A] transition-colors">
+                <Mail size={16} strokeWidth={1.5} /> fusionharmony6@gmail.com
               </a>
             </div>
 
@@ -66,24 +68,13 @@ export const Footer = () => {
           </div>
 
           <div className="glass-panel bg-white/5 p-8 md:p-10 rounded-3xl backdrop-blur-md w-full max-w-lg lg:ml-auto">
-            <h3 className="font-serif text-2xl mb-6">Send an Inquiry</h3>
-            <form className="space-y-6">
-              <div>
-                <input type="text" placeholder="Your Name" className="w-full bg-transparent border-b border-[#F5EFE5]/20 py-3 text-[#F5EFE5] placeholder:text-[#F5EFE5]/40 focus:outline-none focus:border-[#D8B46A] transition-colors" />
-              </div>
-              <div>
-                <input type="email" placeholder="Email Address" className="w-full bg-transparent border-b border-[#F5EFE5]/20 py-3 text-[#F5EFE5] placeholder:text-[#F5EFE5]/40 focus:outline-none focus:border-[#D8B46A] transition-colors" />
-              </div>
-              <div>
-                <select className="w-full bg-transparent border-b border-[#F5EFE5]/20 py-3 text-[#F5EFE5]/80 focus:outline-none focus:border-[#D8B46A] transition-colors appearance-none cursor-pointer">
-                  <option value="" className="bg-[#2B241E]">Select an Interest</option>
-                  <option value="studio" className="bg-[#2B241E]">Live Studio Class</option>
-                  <option value="corporate" className="bg-[#2B241E]">Corporate Wellness</option>
-                  <option value="private" className="bg-[#2B241E]">Private Coaching</option>
-                </select>
-              </div>
-              <Button variant="primary" className="w-full mt-8">Submit Request</Button>
-            </form>
+            <h3 className="font-serif text-2xl mb-3">Send an Inquiry</h3>
+            <p className="text-sm text-[#F5EFE5]/60 mb-8">
+              Message us directly on WhatsApp — we typically reply within the hour.
+            </p>
+            <a href={whatsappHref} target="_blank" rel="noreferrer">
+              <Button variant="primary" className="w-full">Message Us on WhatsApp</Button>
+            </a>
           </div>
         </div>
 
@@ -115,11 +106,7 @@ export const Footer = () => {
             <ul className="space-y-3 text-sm text-[#F5EFE5]/60">
               <li className="flex items-start gap-2">
                 <MapPin size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#D8B46A]" />
-                Al Quoz, Dubai, UAE
-              </li>
-              <li className="flex items-start gap-2">
-                <Clock size={16} strokeWidth={1.5} className="mt-0.5 shrink-0 text-[#D8B46A]" />
-                Daily, 6am – 9pm
+                CWS-1V-226155, Amber Gem Tower, Ajman
               </li>
             </ul>
           </div>

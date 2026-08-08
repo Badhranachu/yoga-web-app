@@ -76,7 +76,7 @@ export const MembersPage = () => {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <h2 className="mb-2 font-serif text-2xl text-[#2B241E]">Admins</h2>
           <p className="text-sm text-[#786A58]">Create and manage admin accounts with full dashboard access.</p>
@@ -96,32 +96,34 @@ export const MembersPage = () => {
         ) : admins.length === 0 ? (
           <p className="p-6 text-sm text-[#786A58]">No admins yet. Add one to get started.</p>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
-                <th className="px-6 py-4 font-medium">Name</th>
-                <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Phone</th>
-                <th className="px-6 py-4 font-medium">Created</th>
-              </tr>
-            </thead>
-            <tbody>
-              {admins.map((admin) => (
-                <tr key={admin.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
-                  <td className="px-6 py-4">{admin.full_name || '—'}</td>
-                  <td className="px-6 py-4">{admin.email}</td>
-                  <td className="px-6 py-4">{admin.phone_number || '—'}</td>
-                  <td className="px-6 py-4">{new Date(admin.created_at).toLocaleDateString()}</td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
+                  <th className="px-6 py-4 font-medium">Name</th>
+                  <th className="px-6 py-4 font-medium">Email</th>
+                  <th className="px-6 py-4 font-medium">Phone</th>
+                  <th className="px-6 py-4 font-medium">Created</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {admins.map((admin) => (
+                  <tr key={admin.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
+                    <td className="px-6 py-4">{admin.full_name || '—'}</td>
+                    <td className="px-6 py-4">{admin.email}</td>
+                    <td className="px-6 py-4">{admin.phone_number || '—'}</td>
+                    <td className="px-6 py-4">{new Date(admin.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/35 px-4">
-          <div className="w-full max-w-lg rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-serif text-2xl text-[#2B241E]">Create Admin</h3>

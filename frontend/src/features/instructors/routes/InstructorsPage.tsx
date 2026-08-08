@@ -159,7 +159,7 @@ export const InstructorsPage = () => {
 
   return (
     <div>
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-start">
         <div>
           <h2 className="mb-2 font-serif text-2xl text-[#2B241E]">Instructors</h2>
           <p className="text-sm text-[#786A58]">Create and manage instructor accounts.</p>
@@ -179,66 +179,68 @@ export const InstructorsPage = () => {
         ) : instructors.length === 0 ? (
           <p className="p-6 text-sm text-[#786A58]">No instructors yet. Add one to get started.</p>
         ) : (
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
-                <th className="px-6 py-4 font-medium">Photo</th>
-                <th className="px-6 py-4 font-medium">Username</th>
-                <th className="px-6 py-4 font-medium">Email</th>
-                <th className="px-6 py-4 font-medium">Age</th>
-                <th className="px-6 py-4 font-medium">Show on Homepage</th>
-                <th className="px-6 py-4 font-medium">Created</th>
-                <th className="px-6 py-4 font-medium">View</th>
-                <th className="px-6 py-4 font-medium">Edit</th>
-              </tr>
-            </thead>
-            <tbody>
-              {instructors.map((instructor) => (
-                <tr key={instructor.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
-                  <td className="px-6 py-4">
-                    {instructor.photo ? (
-                      <img src={instructor.photo} alt="" className="h-12 w-12 rounded-full object-cover" />
-                    ) : (
-                      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2B241E]/10 text-xs text-[#786A58]">
-                        None
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4">{instructor.username ?? '—'}</td>
-                  <td className="px-6 py-4">{instructor.email}</td>
-                  <td className="px-6 py-4">{instructor.age ?? '—'}</td>
-                  <td className="px-6 py-4">{instructor.show_on_homepage ? 'Yes' : 'No'}</td>
-                  <td className="px-6 py-4">{new Date(instructor.created_at).toLocaleDateString()}</td>
-                  <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => setViewingInstructor(instructor)}
-                      className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
-                    >
-                      <Eye size={14} />
-                      View
-                    </button>
-                  </td>
-                  <td className="px-6 py-4">
-                    <button
-                      type="button"
-                      onClick={() => openEditDialog(instructor)}
-                      className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
-                    >
-                      <Pencil size={14} />
-                      Edit
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
+                  <th className="px-6 py-4 font-medium">Photo</th>
+                  <th className="px-6 py-4 font-medium">Username</th>
+                  <th className="px-6 py-4 font-medium">Email</th>
+                  <th className="px-6 py-4 font-medium">Age</th>
+                  <th className="px-6 py-4 font-medium">Show on Homepage</th>
+                  <th className="px-6 py-4 font-medium">Created</th>
+                  <th className="px-6 py-4 font-medium">View</th>
+                  <th className="px-6 py-4 font-medium">Edit</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {instructors.map((instructor) => (
+                  <tr key={instructor.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
+                    <td className="px-6 py-4">
+                      {instructor.photo ? (
+                        <img src={instructor.photo} alt="" className="h-12 w-12 rounded-full object-cover" />
+                      ) : (
+                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2B241E]/10 text-xs text-[#786A58]">
+                          None
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4">{instructor.username ?? '—'}</td>
+                    <td className="px-6 py-4">{instructor.email}</td>
+                    <td className="px-6 py-4">{instructor.age ?? '—'}</td>
+                    <td className="px-6 py-4">{instructor.show_on_homepage ? 'Yes' : 'No'}</td>
+                    <td className="px-6 py-4">{new Date(instructor.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => setViewingInstructor(instructor)}
+                        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </td>
+                    <td className="px-6 py-4">
+                      <button
+                        type="button"
+                        onClick={() => openEditDialog(instructor)}
+                        className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
+                      >
+                        <Pencil size={14} />
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/35 px-4">
-          <div className="w-full max-w-lg rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-serif text-2xl text-[#2B241E]">Add Instructor</h3>
@@ -326,7 +328,7 @@ export const InstructorsPage = () => {
 
       {viewingInstructor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/35 px-4">
-          <div className="w-full max-w-lg origin-center scale-[0.8] rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg origin-center overflow-y-auto rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl sm:scale-[0.8]">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-serif text-2xl text-[#2B241E]">Instructor Details</h3>
@@ -395,7 +397,7 @@ export const InstructorsPage = () => {
 
       {editingInstructor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#2B241E]/35 px-4">
-          <div className="w-full max-w-lg origin-center scale-[0.8] rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-lg origin-center overflow-y-auto rounded-[28px] border border-white/70 bg-[#F5EFE5] p-6 shadow-2xl sm:scale-[0.8]">
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <h3 className="font-serif text-2xl text-[#2B241E]">Edit Instructor</h3>

@@ -31,7 +31,16 @@ def _receipt_number(transaction):
 
 
 def _trend(queryset, date_field, start, end, value_field=None):
-    grouped = queryset.filter(**{f'{date_field}__gte': start, f'{date_field}__lte': end})
+    # Filtering a DateTimeField directly with __gte/__lte against plain date
+    # objects makes Django build a naive midnight datetime internally, which
+    # triggers a RuntimeWarning under USE_TZ=True (see accounts/base.py:
+    # TIME_ZONE = 'Asia/Kolkata'). __date__gte/__date__lte are date-only
+    # lookups that avoid that coercion entirely — same result, no warning.
+    is_date_field = date_field == 'slot__date'
+    if is_date_field:
+        grouped = queryset.filter(**{f'{date_field}__gte': start, f'{date_field}__lte': end})
+    else:
+        grouped = queryset.filter(**{f'{date_field}__date__gte': start, f'{date_field}__date__lte': end})
     if value_field:
         grouped = grouped.values(date=TruncDate(value_field)).annotate(value=Sum('amount'))
     else:

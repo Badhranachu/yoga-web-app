@@ -62,7 +62,7 @@ export const BookingHistoryPage = () => {
   };
 
   return (
-    <div className="max-w-3xl">
+    <div className="w-full max-w-3xl">
       <h2 className="mb-2 font-serif text-3xl text-dark">Booking History</h2>
       <p className="mb-8 text-sm text-brown">Every class you've ever booked, searchable by status and date.</p>
 
@@ -134,7 +134,7 @@ export const BookingHistoryPage = () => {
           {bookings.map((booking) => {
             const effectiveStatus = getEffectiveStatus(booking);
             return (
-              <div key={booking.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+              <div key={booking.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm sm:flex-nowrap sm:gap-4">
                 <div>
                   <p className="text-dark">{formatCalendarDate(booking.slot.date)}</p>
                   <p className="text-xs text-brown">

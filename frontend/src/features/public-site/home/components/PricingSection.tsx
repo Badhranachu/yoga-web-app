@@ -1,6 +1,11 @@
 import { Check, X } from 'lucide-react';
 import { RevealSection } from '@/shared/ui/RevealSection';
 import { Button } from '@/shared/ui/Button';
+import { buildWhatsAppHref } from '@/shared/ui/icons/socialLinks';
+
+const CUSTOM_PLAN_WHATSAPP_HREF = buildWhatsAppHref(
+  "Hi! I'd like to inquire about a custom multi-month plan at Harmony Fusion Studio.",
+);
 
 export const PricingSection = () => (
   <RevealSection className="bg-[#F5EFE5]">
@@ -55,7 +60,9 @@ export const PricingSection = () => (
             <div className="flex items-center gap-3 text-sm text-[#2B241E]"><Check size={16} className="text-[#D8B46A]" /> Dedicated master trainer</div>
             <div className="flex items-center gap-3 text-sm text-[#2B241E]"><Check size={16} className="text-[#D8B46A]" /> Weekly progress check-ins</div>
           </div>
-          <Button variant="outline" className="w-full">Inquire Now</Button>
+          <a href={CUSTOM_PLAN_WHATSAPP_HREF} target="_blank" rel="noreferrer">
+            <Button variant="outline" className="w-full">Inquire Now</Button>
+          </a>
         </div>
       </div>
     </div>

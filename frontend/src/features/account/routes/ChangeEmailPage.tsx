@@ -55,7 +55,7 @@ export const ChangeEmailPage = () => {
   };
 
   return (
-    <div className="max-w-lg">
+    <div className="w-full max-w-lg">
       <button
         type="button"
         onClick={() => navigate(profileHome)}

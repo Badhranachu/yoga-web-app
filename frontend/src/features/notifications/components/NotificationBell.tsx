@@ -72,17 +72,17 @@ export const NotificationBell = () => {
 
   return (
     <div className="relative" ref={containerRef}>
-      <button type="button" onClick={() => setIsOpen((open) => !open)} aria-label="Notifications" aria-expanded={isOpen} className="relative text-[#786A58] hover:text-[#D8B46A] transition-colors">
+      <button type="button" onClick={() => setIsOpen((open) => !open)} aria-label="Notifications" aria-expanded={isOpen} className="relative flex h-10 w-10 items-center justify-center text-[#786A58] hover:text-[#D8B46A] transition-colors">
         <Bell size={20} strokeWidth={1.5} />
         {unreadCount > 0 && (
-          <span className="absolute -right-2 -top-2 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#D8B46A] px-1 text-[9px] font-medium text-[#2B241E]">
+          <span className="absolute right-1 top-1 flex min-h-4 min-w-4 items-center justify-center rounded-full bg-[#D8B46A] px-1 text-[9px] font-medium text-[#2B241E]">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 top-8 z-50 w-80 rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] p-3 shadow-xl">
+        <div className="absolute right-0 top-8 z-50 w-[calc(100vw-2rem)] max-w-80 rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] p-3 shadow-xl">
           <div className="flex items-center justify-between px-2 pb-2">
             <h2 className="font-serif text-lg text-[#2B241E]">Notifications</h2>
             <div className="flex items-center gap-3">
@@ -91,7 +91,7 @@ export const NotificationBell = () => {
                   Mark All Read
                 </button>
               )}
-              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close notifications" className="text-[#786A58] hover:text-[#2B241E] transition-colors">
+              <button type="button" onClick={() => setIsOpen(false)} aria-label="Close notifications" className="flex h-8 w-8 items-center justify-center text-[#786A58] hover:text-[#2B241E] transition-colors">
                 <X size={16} strokeWidth={1.5} />
               </button>
             </div>

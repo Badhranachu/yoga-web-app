@@ -17,10 +17,10 @@ export const PaymentHistoryList = ({ payments }: PaymentHistoryListProps) => {
       {payments.map((payment) => (
         <div
           key={payment.id}
-          className="flex items-center justify-between gap-4 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[#2B241E]/10 px-4 py-3 text-sm sm:flex-nowrap sm:gap-4"
         >
-          <div>
-            <div className="text-[#2B241E]">{payment.receipt.receipt_number}</div>
+          <div className="min-w-0">
+            <div className="text-[#2B241E] break-words">{payment.receipt.receipt_number}</div>
             <div className="text-[#786A58]">
               {payment.payment_type === 'subscription' ? 'Monthly Subscription' : 'Single Slot'} · {payment.amount}{' '}
               {payment.currency}
@@ -29,7 +29,7 @@ export const PaymentHistoryList = ({ payments }: PaymentHistoryListProps) => {
           <button
             type="button"
             onClick={() => void paymentsApi.downloadReceipt(payment.receipt.id)}
-            className="text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A]"
+            className="shrink-0 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#D8B46A]"
           >
             Receipt
           </button>
