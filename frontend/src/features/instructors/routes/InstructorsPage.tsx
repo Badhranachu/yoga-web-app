@@ -4,6 +4,7 @@ import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import { Button, TextField } from '@/shared/ui';
 import { FormError, FormSuccess } from '@/shared/ui/FormFeedback/FormFeedback';
+import { EmailOtpField } from '@/features/auth/components/EmailOtpField';
 import { instructorsApi } from '../api/instructorsApi';
 import type { InstructorProfile } from '../types';
 
@@ -31,6 +32,7 @@ export const InstructorsPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
+  const [emailVerified, setEmailVerified] = useState(false);
   const [instructors, setInstructors] = useState<InstructorProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -68,6 +70,7 @@ export const InstructorsPage = () => {
     setIsSubmitting(false);
     setErrorMessage(null);
     setForm(initialForm);
+    setEmailVerified(false);
   };
 
   const handleChange = (field: keyof typeof initialForm, value: string) => {
@@ -253,75 +256,78 @@ export const InstructorsPage = () => {
 
             <FormError message={errorMessage} />
 
-            <form className="space-y-5" onSubmit={handleSubmit}>
-              <TextField
-                label="Username"
-                name="username"
-                value={form.username}
-                onChange={(event) => handleChange('username', event.target.value)}
-                required
-              />
-              <TextField
-                label="Email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={(event) => handleChange('email', event.target.value)}
-                required
-              />
-              <TextField
-                label="Name"
-                name="first_name"
-                value={form.first_name}
-                onChange={(event) => handleChange('first_name', event.target.value)}
-                required
-              />
-              <div>
-                <TextField
-                  label="Phone Number"
-                  name="phone_number"
-                  type="tel"
-                  value={form.phone_number}
-                  onChange={(event) => handleChange('phone_number', event.target.value)}
-                  required
-                />
-                <p className="mt-1 text-xs text-[#786A58]">Use a number reachable on WhatsApp only.</p>
-              </div>
-              <TextField
-                label="Age"
-                name="age"
-                type="number"
-                min={1}
-                max={129}
-                value={form.age}
-                onChange={(event) => handleChange('age', event.target.value)}
-              />
-              <TextField
-                label="Password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={(event) => handleChange('password', event.target.value)}
-                required
-              />
-              <TextField
-                label="Confirm Password"
-                name="password_confirm"
-                type="password"
-                value={form.password_confirm}
-                onChange={(event) => handleChange('password_confirm', event.target.value)}
-                required
+            <div className="space-y-5">
+              <EmailOtpField
+                email={form.email}
+                onEmailChange={(value) => handleChange('email', value)}
+                verified={emailVerified}
+                onVerified={() => setEmailVerified(true)}
               />
 
-              <div className="flex justify-end gap-3 pt-2">
-                <Button type="button" variant="outline" className="px-5 py-3" onClick={closeDialog} disabled={isSubmitting}>
-                  Cancel
-                </Button>
-                <Button type="submit" className="px-5 py-3" disabled={isSubmitting}>
-                  {isSubmitting ? 'Creating...' : 'Create Instructor'}
-                </Button>
-              </div>
-            </form>
+              {emailVerified && (
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <TextField
+                    label="Username"
+                    name="username"
+                    value={form.username}
+                    onChange={(event) => handleChange('username', event.target.value)}
+                    required
+                  />
+                  <TextField
+                    label="Name"
+                    name="first_name"
+                    value={form.first_name}
+                    onChange={(event) => handleChange('first_name', event.target.value)}
+                    required
+                  />
+                  <div>
+                    <TextField
+                      label="Phone Number"
+                      name="phone_number"
+                      type="tel"
+                      value={form.phone_number}
+                      onChange={(event) => handleChange('phone_number', event.target.value)}
+                      required
+                    />
+                    <p className="mt-1 text-xs text-[#786A58]">Use a number reachable on WhatsApp only.</p>
+                  </div>
+                  <TextField
+                    label="Age"
+                    name="age"
+                    type="number"
+                    min={1}
+                    max={129}
+                    value={form.age}
+                    onChange={(event) => handleChange('age', event.target.value)}
+                  />
+                  <TextField
+                    label="Password"
+                    name="password"
+                    type="password"
+                    value={form.password}
+                    onChange={(event) => handleChange('password', event.target.value)}
+                    required
+                  />
+                  <TextField
+                    label="Confirm Password"
+                    name="password_confirm"
+                    type="password"
+                    value={form.password_confirm}
+                    onChange={(event) => handleChange('password_confirm', event.target.value)}
+                    required
+                  />
+
+                  <div className="flex justify-end gap-3 pt-2">
+                    <Button type="button" variant="outline" className="px-5 py-3" onClick={closeDialog} disabled={isSubmitting}>
+                      Cancel
+                    </Button>
+                    <Button type="submit" className="px-5 py-3" disabled={isSubmitting}>
+                      {isSubmitting ? 'Creating...' : 'Create Instructor'}
+                    </Button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}

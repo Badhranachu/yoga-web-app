@@ -22,6 +22,14 @@ export const authApi = {
     return data.data;
   },
 
+  requestRegistrationOtp: async (email: string): Promise<void> => {
+    await apiClient.post('/auth/registration-otp/request/', { email });
+  },
+
+  verifyRegistrationOtp: async (email: string, otpCode: string): Promise<void> => {
+    await apiClient.post('/auth/registration-otp/verify/', { email, otp_code: otpCode });
+  },
+
   login: async (payload: LoginPayload): Promise<LoginResponse> => {
     const { data } = await apiClient.post<ApiSuccess<LoginResponse>>('/auth/login/', payload);
     return data.data;

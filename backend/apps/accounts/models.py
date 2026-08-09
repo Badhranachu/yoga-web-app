@@ -148,6 +148,56 @@ class EmailChangeRequest(TimeStampedModel):
         self.save(update_fields=['attempts', 'updated_at'])
 
 
+def _registration_otp_expiry():
+    return timezone.now() + timedelta(minutes=5)
+
+
+class RegistrationOTP(TimeStampedModel):
+    """A pending email-ownership check for account creation — member
+    self-registration, or an admin creating another admin/instructor
+    account. Not tied to a User row since the account doesn't exist yet;
+    keyed by email instead. Registration is only allowed once verified_at
+    is set (see apps.accounts.services.get_verified_registration_otp), and
+    consumed_at prevents a verified-but-unused code being replayed later.
+    """
+
+    email = models.EmailField()
+    otp_code = models.CharField(max_length=6, default=_generate_otp)
+    expires_at = models.DateTimeField(default=_registration_otp_expiry)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    consumed_at = models.DateTimeField(null=True, blank=True)
+    attempts = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        db_table = 'accounts_registration_otp'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Registration OTP for {self.email}'
+
+    @property
+    def can_be_verified(self):
+        return self.verified_at is None and self.consumed_at is None and timezone.now() < self.expires_at and self.attempts < 5
+
+    @property
+    def is_valid_for_registration(self):
+        if self.verified_at is None or self.consumed_at is not None:
+            return False
+        return timezone.now() < self.verified_at + timedelta(minutes=30)
+
+    def mark_verified(self):
+        self.verified_at = timezone.now()
+        self.save(update_fields=['verified_at', 'updated_at'])
+
+    def mark_consumed(self):
+        self.consumed_at = timezone.now()
+        self.save(update_fields=['consumed_at', 'updated_at'])
+
+    def register_failed_attempt(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts', 'updated_at'])
+
+
 class AdminProfile(TimeStampedModel):
     """Admin-specific profile extension, symmetric to apps.members.UserProfile
     (which extends role=user accounts). Shared account fields — name, email,

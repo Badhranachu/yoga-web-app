@@ -17,16 +17,21 @@ from .serializers import (
     ForgotPasswordSerializer,
     RegisterSerializer,
     RequestEmailChangeSerializer,
+    RequestRegistrationOTPSerializer,
     ResetPasswordSerializer,
     UserSerializer,
     VerifyEmailChangeSerializer,
+    VerifyRegistrationOTPSerializer,
 )
 from .services import (
     EmailChangeError,
+    RegistrationOTPError,
     issue_password_reset_token,
     request_email_change,
+    request_registration_otp,
     reset_password_with_token,
     verify_email_change,
+    verify_registration_otp,
 )
 
 
@@ -63,6 +68,42 @@ class AdminListCreateView(APIView):
             message='Admin account created successfully.',
             status=status.HTTP_201_CREATED,
         )
+
+
+class RequestRegistrationOTPView(APIView):
+    """POST { email } -> sends a 6-digit code to that email, valid for 5
+    minutes. Shared by public self-registration and admin-initiated
+    admin/instructor creation — both need to confirm the email is reachable
+    before the rest of the form unlocks.
+    """
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = RequestRegistrationOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            request_registration_otp(serializer.validated_data['email'])
+        except RegistrationOTPError as exc:
+            return error_response(str(exc))
+        return success_response(message='A verification code was sent to that email address.')
+
+
+class VerifyRegistrationOTPView(APIView):
+    """POST { email, otp_code } -> marks that email verified for the next 30
+    minutes, which is what actually unlocks account creation
+    (RegisterView / AdminListCreateView / instructor creation)."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyRegistrationOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            verify_registration_otp(serializer.validated_data['email'], serializer.validated_data['otp_code'])
+        except RegistrationOTPError as exc:
+            return error_response(str(exc))
+        return success_response(message='Email verified.')
 
 
 class LoginView(TokenObtainPairView):

@@ -4,6 +4,7 @@ from django.db import transaction
 from rest_framework import serializers
 
 from apps.accounts.models import User
+from apps.accounts.services import get_verified_registration_otp
 
 from .models import InstructorProfile
 
@@ -130,6 +131,10 @@ class AdminCreateInstructorSerializer(serializers.Serializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({'password_confirm': "Passwords don't match."})
+        otp = get_verified_registration_otp(attrs['email'])
+        if otp is None:
+            raise serializers.ValidationError({'email': 'Please verify this email with the code sent to it first.'})
+        self._otp = otp
         return attrs
 
     @transaction.atomic
@@ -148,4 +153,5 @@ class AdminCreateInstructorSerializer(serializers.Serializer):
         profile, _ = InstructorProfile.objects.get_or_create(user=user)
         profile.username = username
         profile.save(update_fields=['username', 'updated_at'])
+        self._otp.mark_consumed()
         return profile

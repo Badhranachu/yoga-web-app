@@ -3,11 +3,15 @@ from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
-from .models import EmailChangeRequest, PasswordResetToken, User
+from .models import EmailChangeRequest, PasswordResetToken, RegistrationOTP, User
 
 
 class EmailChangeError(Exception):
     """Raised for invalid/expired/mismatched email-change OTP verification."""
+
+
+class RegistrationOTPError(Exception):
+    """Raised for invalid/expired/mismatched registration-email OTP verification."""
 
 
 def issue_password_reset_token(email: str) -> None:
@@ -126,3 +130,79 @@ def verify_email_change(user, otp_code: str) -> User:
     user.save(update_fields=['email'])
     change_request.mark_used()
     return user
+
+
+@transaction.atomic
+def request_registration_otp(email: str) -> RegistrationOTP:
+    """Starts email verification ahead of account creation — used by public
+    self-registration and by admin-initiated admin/instructor creation
+    alike, since both need proof the submitted email is reachable before
+    the rest of the form is unlocked. Invalidates any still-pending code
+    for this email first, so only the most recent one is ever valid.
+    """
+    email = email.lower().strip()
+    if User.objects.filter(email=email).exists():
+        raise RegistrationOTPError('An account with this email already exists.')
+
+    RegistrationOTP.objects.filter(email=email, verified_at__isnull=True, consumed_at__isnull=True).update(
+        consumed_at=timezone.now()
+    )
+
+    otp = RegistrationOTP.objects.create(email=email)
+
+    try:
+        send_mail(
+            subject='Verify your email for Harmony Fusion Studio',
+            message=(
+                'Use the code below to verify this email address before continuing. '
+                'It expires in 5 minutes.\n\n'
+                f'{otp.otp_code}\n\n'
+                "If you didn't request this, you can safely ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        raise RegistrationOTPError('Could not send the verification email. Please try again later.') from exc
+
+    return otp
+
+
+@transaction.atomic
+def verify_registration_otp(email: str, otp_code: str) -> RegistrationOTP:
+    """Verifies the OTP for this email's most recent pending registration
+    request. On success, the account-creation serializers (RegisterSerializer,
+    AdminCreateAdminSerializer, AdminCreateInstructorSerializer) will accept
+    that email — see get_verified_registration_otp.
+    """
+    email = email.lower().strip()
+    otp = (
+        RegistrationOTP.objects.select_for_update()
+        .filter(email=email, verified_at__isnull=True, consumed_at__isnull=True)
+        .order_by('-created_at')
+        .first()
+    )
+    if otp is None or not otp.can_be_verified:
+        raise RegistrationOTPError('This code is invalid or has expired. Request a new one.')
+
+    if otp.otp_code != otp_code.strip():
+        otp.register_failed_attempt()
+        raise RegistrationOTPError('Incorrect code.')
+
+    otp.mark_verified()
+    return otp
+
+
+def get_verified_registration_otp(email: str) -> RegistrationOTP | None:
+    """Looks up a still-usable verified OTP for this email (verified within
+    the last 30 minutes, not yet consumed). Called from the account-creation
+    serializers to gate create(); callers must invoke otp.mark_consumed()
+    once the account is actually created, so a code can't be replayed for a
+    second account.
+    """
+    email = email.lower().strip()
+    otp = RegistrationOTP.objects.filter(email=email, consumed_at__isnull=True).order_by('-created_at').first()
+    if otp and otp.is_valid_for_registration:
+        return otp
+    return None

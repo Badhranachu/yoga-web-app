@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button, TextField } from '@/shared/ui';
 import { AuthCard } from '../components/AuthCard';
+import { EmailOtpField } from '../components/EmailOtpField';
 import { FormError } from '@/shared/ui';
 import { useAuth } from '../hooks/useAuth';
 import { extractErrorMessage } from '@/shared/lib/apiErrors';
@@ -10,6 +11,7 @@ export const RegisterPage = () => {
   const { register, login } = useAuth();
   const navigate = useNavigate();
 
+  const [emailVerified, setEmailVerified] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -61,68 +63,69 @@ export const RegisterPage = () => {
       }
     >
       <FormError message={error} />
-      <form onSubmit={handleSubmit} className="space-y-6" noValidate>
-        <div className="grid grid-cols-2 gap-4">
-          <TextField
-            label="First Name"
-            name="firstName"
-            autoComplete="given-name"
-            required
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-          <TextField
-            label="Last Name"
-            name="lastName"
-            autoComplete="family-name"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-        </div>
-        <TextField
-          label="Email Address"
-          type="email"
-          name="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <div>
-          <TextField
-            label="Phone Number"
-            type="tel"
-            name="phoneNumber"
-            autoComplete="tel"
-            required
-            value={phoneNumber}
-            onChange={(e) => setPhoneNumber(e.target.value)}
-          />
-          <p className="mt-1 text-xs text-[#786A58]">Use a number reachable on WhatsApp only.</p>
-        </div>
-        <TextField
-          label="Password"
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <TextField
-          label="Confirm Password"
-          type="password"
-          name="passwordConfirm"
-          autoComplete="new-password"
-          required
-          value={passwordConfirm}
-          onChange={(e) => setPasswordConfirm(e.target.value)}
-        />
 
-        <Button type="submit" variant="primary" className="w-full" disabled={isSubmitting}>
-          {isSubmitting ? 'Creating account…' : 'Create Account'}
-        </Button>
-      </form>
+      <EmailOtpField
+        email={email}
+        onEmailChange={setEmail}
+        verified={emailVerified}
+        onVerified={() => setEmailVerified(true)}
+      />
+
+      {emailVerified && (
+        <form onSubmit={handleSubmit} className="mt-6 space-y-6" noValidate>
+          <div className="grid grid-cols-2 gap-4">
+            <TextField
+              label="First Name"
+              name="firstName"
+              autoComplete="given-name"
+              required
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+            />
+            <TextField
+              label="Last Name"
+              name="lastName"
+              autoComplete="family-name"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+            />
+          </div>
+          <div>
+            <TextField
+              label="Phone Number"
+              type="tel"
+              name="phoneNumber"
+              autoComplete="tel"
+              required
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+            />
+            <p className="mt-1 text-xs text-[#786A58]">Use a number reachable on WhatsApp only.</p>
+          </div>
+          <TextField
+            label="Password"
+            type="password"
+            name="password"
+            autoComplete="new-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <TextField
+            label="Confirm Password"
+            type="password"
+            name="passwordConfirm"
+            autoComplete="new-password"
+            required
+            value={passwordConfirm}
+            onChange={(e) => setPasswordConfirm(e.target.value)}
+          />
+
+          <Button type="submit" variant="primary" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? 'Creating account…' : 'Create Account'}
+          </Button>
+        </form>
+      )}
     </AuthCard>
   );
 };

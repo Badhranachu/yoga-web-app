@@ -10,14 +10,18 @@ from .views import (
     RefreshTokenView,
     RegisterView,
     RequestEmailChangeView,
+    RequestRegistrationOTPView,
     ResetPasswordView,
     VerifyEmailChangeView,
+    VerifyRegistrationOTPView,
 )
 
 app_name = 'accounts'
 
 urlpatterns = [
     path('register/', RegisterView.as_view(), name='register'),
+    path('registration-otp/request/', RequestRegistrationOTPView.as_view(), name='registration-otp-request'),
+    path('registration-otp/verify/', VerifyRegistrationOTPView.as_view(), name='registration-otp-verify'),
     path('admins/', AdminListCreateView.as_view(), name='admin-list-create'),
     path('login/', LoginView.as_view(), name='login'),
     path('refresh/', RefreshTokenView.as_view(), name='refresh'),

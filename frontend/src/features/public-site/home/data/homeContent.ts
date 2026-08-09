@@ -6,19 +6,19 @@ export const services = [
     num: '01',
     title: 'Live In-Studio',
     desc: 'Small-batch, in-person sessions in Dubai with hands-on correction and real-time pacing.',
-    img: 'https://images.unsplash.com/photo-1599901860904-17e6ed7083a0?q=80&w=1000&auto=format&fit=crop',
+    img: '/assets/service1.jpg',
   },
   {
     num: '02',
     title: 'Group Online',
     desc: 'Scheduled live sessions streamed to your home—the energy of a studio, from anywhere.',
-    img: 'https://images.unsplash.com/photo-1603988363607-e1e4a66962c6?q=80&w=1000&auto=format&fit=crop',
+    img: '/assets/service2.jpg',
   },
   {
     num: '03',
     title: '1:1 Coaching',
     desc: 'Personalised online sessions built around your specific goals, flexibility, and recovery needs.',
-    img: 'https://images.unsplash.com/photo-1518611012118-696072aa579a?q=80&w=1000&auto=format&fit=crop',
+    img: '/assets/service3.jpg',
   },
   {
     num: '04',
