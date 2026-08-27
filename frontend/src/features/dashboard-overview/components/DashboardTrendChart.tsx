@@ -27,8 +27,8 @@ export const DashboardTrendChart = ({ title, points, currency = false }: Props) 
         {points.map((point) => <span key={point.date}>{point.label}</span>)}
       </div>
       <div className="mt-3 flex justify-between text-xs text-brown">
-        <span>{points[0] ? (currency ? `INR ${points[0].value}` : points[0].value) : '0'}</span>
-        <span>{points.at(-1) ? (currency ? `INR ${points.at(-1)?.value}` : points.at(-1)?.value) : '0'}</span>
+        <span>{points[0] ? (currency ? `AED ${points[0].value}` : points[0].value) : '0'}</span>
+        <span>{points.at(-1) ? (currency ? `AED ${points.at(-1)?.value}` : points.at(-1)?.value) : '0'}</span>
       </div>
     </section>
   );

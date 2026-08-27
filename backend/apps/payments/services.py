@@ -96,13 +96,13 @@ def get_razorpay_client() -> razorpay.Client:
 
 
 def create_razorpay_order(amount: Decimal, *, receipt: str) -> dict:
-    """Creates a Razorpay Order for the given amount (INR) and returns the
-    raw order dict. amount is in rupees; Razorpay expects paise.
+    """Creates a Razorpay Order for the given amount (AED) and returns the
+    raw order dict. amount is in AED; Razorpay expects fils (amount * 100).
     """
     client = get_razorpay_client()
     return client.order.create({
         'amount': int(amount * 100),
-        'currency': 'INR',
+        'currency': 'AED',
         'receipt': receipt,
         'payment_capture': 1,
     })

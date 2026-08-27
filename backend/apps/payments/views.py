@@ -347,7 +347,7 @@ class RevenueSummaryView(APIView):
             for item in by_type
         }
         return success_response(data={
-            'currency': 'INR',
+            'currency': 'AED',
             'total_revenue': str(totals['total'] or 0),
             'transaction_count': totals['count'],
             'by_type': type_summary,

@@ -186,7 +186,7 @@ export const SubscriptionPage = () => {
             {plan && (
               <div className="mb-6 flex items-baseline gap-2">
                 <span className="font-serif text-3xl text-[#2B241E]">{plan.monthly_price}</span>
-                <span className="text-sm text-[#786A58]">INR / month — {plan.included_sessions} sessions</span>
+                <span className="text-sm text-[#786A58]">AED / month — {plan.included_sessions} sessions</span>
               </div>
             )}
 

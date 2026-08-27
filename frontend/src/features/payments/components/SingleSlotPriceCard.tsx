@@ -79,7 +79,7 @@ export const SingleSlotPriceCard = ({ price, onUpdated }: SingleSlotPriceCardPro
       {isEditing ? (
         <div className="flex items-end gap-4">
           <TextField
-            label="Price (INR)"
+            label="Price (AED)"
             type="number"
             min="0"
             step="0.01"
@@ -96,7 +96,7 @@ export const SingleSlotPriceCard = ({ price, onUpdated }: SingleSlotPriceCardPro
         </div>
       ) : (
         <div>
-          <div className="mb-1 text-xs uppercase tracking-widest text-[#786A58]">Price (INR)</div>
+          <div className="mb-1 text-xs uppercase tracking-widest text-[#786A58]">Price (AED)</div>
           <div className="text-lg text-[#2B241E]">{price}</div>
         </div>
       )}

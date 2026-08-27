@@ -171,7 +171,7 @@ class PaymentTransaction(TimeStampedModel):
     provider_transaction_id = models.CharField(max_length=128, blank=True, default='')
     payment_type = models.CharField(max_length=16, choices=PaymentType.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default='INR')
+    currency = models.CharField(max_length=3, default='AED')
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.PENDING)
     subscription = models.ForeignKey(
         UserSubscription,
@@ -215,7 +215,7 @@ class Receipt(TimeStampedModel):
     user_email = models.EmailField()
     payment_type = models.CharField(max_length=16, choices=PaymentTransaction.PaymentType.choices)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
-    currency = models.CharField(max_length=3, default='INR')
+    currency = models.CharField(max_length=3, default='AED')
     payment_date = models.DateTimeField()
     status = models.CharField(max_length=16, choices=PaymentTransaction.Status.choices)
 
