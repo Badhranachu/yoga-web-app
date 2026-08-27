@@ -4,6 +4,7 @@ from .views import (
     CreatePaymentOrderView,
     MySubscriptionHistoryStatusView,
     MySubscriptionView,
+    PublicPricingView,
     SingleSlotPriceView,
     SubscriptionPlanView,
     SubscriptionStartDateOptionsView,
@@ -16,6 +17,7 @@ from .views import (
 app_name = 'payments'
 
 urlpatterns = [
+    path('public-pricing/', PublicPricingView.as_view(), name='public-pricing'),
     path('subscription-plan/', SubscriptionPlanView.as_view(), name='subscription-plan'),
     path('settings/single-slot-price/', SingleSlotPriceView.as_view(), name='single-slot-price'),
     path('subscriptions/me/', MySubscriptionView.as_view(), name='my-subscription'),

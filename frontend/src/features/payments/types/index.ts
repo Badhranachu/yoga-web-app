@@ -98,6 +98,13 @@ export type VerifyPaymentPayload = {
   start_date?: string | null; // "YYYY-MM-DD" — required for 'renew', optional for 'purchase'
 };
 
+export type PublicPricing = {
+  monthly_price: string | null;
+  included_sessions: number | null;
+  single_slot_price: string;
+  currency: string;
+};
+
 export type SubscriptionStartDateOptions = {
   action: 'purchase' | 'renew';
   current_subscription_end_date: string | null; // "YYYY-MM-DD", set only when action === 'renew'

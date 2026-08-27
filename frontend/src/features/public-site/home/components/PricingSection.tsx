@@ -1,13 +1,38 @@
+import { useEffect, useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { RevealSection } from '@/shared/ui/RevealSection';
 import { Button } from '@/shared/ui/Button';
 import { buildWhatsAppHref } from '@/shared/ui/icons/socialLinks';
+import { paymentsApi } from '@/features/payments/api/paymentsApi';
+import type { PublicPricing } from '@/features/payments/types';
 
 const CUSTOM_PLAN_WHATSAPP_HREF = buildWhatsAppHref(
   "Hi! I'd like to inquire about a custom multi-month plan at Harmony Fusion Studio.",
 );
 
-export const PricingSection = () => (
+const formatPrice = (value: string | null) => {
+  if (value === null) return null;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(2);
+};
+
+export const PricingSection = () => {
+  const [pricing, setPricing] = useState<PublicPricing | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    paymentsApi.getPublicPricing().then((data) => {
+      if (!cancelled) setPricing(data);
+    }).catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const singleSlotPrice = formatPrice(pricing?.single_slot_price ?? null) ?? '150';
+  const monthlyPrice = formatPrice(pricing?.monthly_price ?? null) ?? '1200';
+
+  return (
   <RevealSection className="bg-[#F5EFE5]">
     <div className="container mx-auto px-6 md:px-12">
       <div className="text-center max-w-2xl mx-auto mb-20">
@@ -21,7 +46,7 @@ export const PricingSection = () => (
         <div className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500">
           <div className="text-[#786A58] text-sm uppercase tracking-widest mb-4">Drop-In</div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-5xl font-serif text-[#2B241E]">150</span>
+            <span className="text-5xl font-serif text-[#2B241E]">{singleSlotPrice}</span>
             <span className="text-[#786A58]">AED / class</span>
           </div>
           <p className="text-sm text-[#786A58] mb-8 h-12">Try a live or online class with no commitment.</p>
@@ -37,7 +62,7 @@ export const PricingSection = () => (
           <div className="absolute top-0 right-0 bg-[#D8B46A] text-[#2B241E] text-[10px] font-bold uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
           <div className="text-[#D8B46A] text-sm uppercase tracking-widest mb-4">Monthly Plan</div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-5xl font-serif text-[#F5EFE5]">1200</span>
+            <span className="text-5xl font-serif text-[#F5EFE5]">{monthlyPrice}</span>
             <span className="text-[#F5EFE5]/60">AED / month</span>
           </div>
           <p className="text-sm text-[#F5EFE5]/70 mb-8 h-12">Unlimited group classes, live or online, all month long.</p>
@@ -67,4 +92,5 @@ export const PricingSection = () => (
       </div>
     </div>
   </RevealSection>
-);
+  );
+};

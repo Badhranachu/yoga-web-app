@@ -5,6 +5,7 @@ import type {
   PaymentOrder,
   PaymentTransaction,
   PaymentType,
+  PublicPricing,
   RevenueSummary,
   SingleSlotPrice,
   SubscriptionPlan,
@@ -19,6 +20,11 @@ import type { PaginatedResponse } from '@/features/classes/types';
 // Unwraps the { success, data, message } envelope so callers work with
 // plain payloads.
 export const paymentsApi = {
+  getPublicPricing: async (): Promise<PublicPricing> => {
+    const { data } = await apiClient.get<ApiSuccess<PublicPricing>>('/payments/public-pricing/');
+    return data.data;
+  },
+
   getPlan: async (): Promise<SubscriptionPlan | null> => {
     const { data } = await apiClient.get<ApiSuccess<SubscriptionPlan | null>>('/payments/subscription-plan/');
     return data.data;

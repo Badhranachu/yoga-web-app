@@ -4,7 +4,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.generics import ListAPIView
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.views import APIView
 
 from apps.core.models import StudioSetting
@@ -112,6 +112,25 @@ class SingleSlotPriceView(APIView):
             description='Price charged for a single pay-per-visit slot (no active subscription required).',
         )
         return success_response(data={'single_slot_price': price}, message='Single slot price updated.')
+
+
+class PublicPricingView(APIView):
+    """GET the studio's current plan price + single-slot price, with no
+    authentication required — powers the public marketing site's pricing
+    section, which must show real numbers to visitors who haven't signed
+    up yet.
+    """
+
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        plan = SubscriptionPlan.objects.filter(is_active=True).order_by('-id').first()
+        return success_response(data={
+            'monthly_price': plan.monthly_price if plan else None,
+            'included_sessions': plan.included_sessions if plan else None,
+            'single_slot_price': get_single_slot_price(),
+            'currency': 'AED',
+        })
 
 
 class MySubscriptionView(APIView):
