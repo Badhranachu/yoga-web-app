@@ -61,8 +61,8 @@ export const Hero = () => {
           transition={{ ...luxuryTransition, delay: 0.8 }}
           className="flex flex-col sm:flex-row gap-6"
         >
-          <Button>Book your first class</Button>
-          <Button variant="glass">Explore Programs</Button>
+          {/* <Button>Book your first class</Button>
+          <Button variant="glass">Explore Programs</Button> */}
         </motion.div>
 
         <BreathingIndicator />
