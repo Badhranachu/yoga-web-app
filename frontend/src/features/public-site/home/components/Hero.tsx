@@ -1,5 +1,4 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
-import { Button } from '@/shared/ui/Button';
 import { luxuryTransition } from '@/shared/lib/motion';
 import { BreathingIndicator } from './BreathingIndicator';
 
