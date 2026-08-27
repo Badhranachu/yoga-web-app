@@ -11,7 +11,7 @@ export const buildWhatsAppHref = (message: string) =>
 export const whatsappHref = buildWhatsAppHref("Hi! I'd like to know more about classes at Harmony Fusion Studio.");
 
 export const socialLinks = [
-  { name: 'Instagram', href: '#', Icon: InstagramIcon },
+  { name: 'Instagram', href: 'https://www.instagram.com/harmonyfusion.yogaco/?utm_source=ig_web_button_share_sheet', Icon: InstagramIcon },
   { name: 'Facebook', href: '#', Icon: FacebookIcon },
   { name: 'X', href: '#', Icon: XSocialIcon },
   { name: 'WhatsApp', href: whatsappHref, Icon: WhatsAppIcon },
