@@ -74,6 +74,10 @@ const ProfileDetailsCard = () => {
 
         <dl className="grid grid-cols-1 gap-x-6 gap-y-5 text-sm sm:grid-cols-2">
           <div>
+            <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">Role</dt>
+            <dd className="text-[#2B241E] capitalize">{user.role}</dd>
+          </div>
+          <div>
             <dt className="text-xs uppercase tracking-widest text-[#786A58] mb-1">First Name</dt>
             <dd className="text-[#2B241E] break-words">{user.first_name || '—'}</dd>
           </div>
@@ -147,7 +151,12 @@ export const ProfilePage = () => {
     <div className="w-full max-w-lg space-y-8">
       <div>
         <h2 className="font-serif text-2xl text-[#2B241E] mb-1">My Profile</h2>
-        <p className="text-sm text-[#786A58]">{user.email}</p>
+        <div className="flex items-center gap-2">
+          <p className="text-sm text-[#786A58]">{user.email}</p>
+          <span className="rounded-full bg-[#D8B46A]/15 px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-widest text-[#D8B46A]">
+            {user.role}
+          </span>
+        </div>
       </div>
 
       <ProfileDetailsCard />

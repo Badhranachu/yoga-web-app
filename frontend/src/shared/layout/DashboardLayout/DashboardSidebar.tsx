@@ -29,10 +29,13 @@ export const DashboardSidebar = ({ navItems, eyebrow = 'Studio Dashboard', mobil
   const content = (onLinkClick?: () => void) => (
     <>
       <div className="border-b border-[#D8B46A]/10 px-6 py-8">
-        <div className="text-xl font-serif tracking-wide">
-          Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
+        <div className="flex items-center gap-3">
+          <img src="/logo/harmony-logo.jpeg" alt="Harmony Fusion Studio" className="h-12 w-12 rounded-lg object-cover" />
+          <div className="text-xl font-serif tracking-wide">
+            Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
+          </div>
         </div>
-        <div className="mt-1 text-[10px] uppercase tracking-[0.3em] text-[#F5EFE5]/40">{eyebrow}</div>
+        <div className="mt-3 text-[10px] uppercase tracking-[0.3em] text-[#F5EFE5]/40">{eyebrow}</div>
       </div>
 
       <nav className="flex-1 space-y-1 px-4 py-6">

@@ -1,0 +1,359 @@
+============================================================
+PROJECT AUDIT REPORT
+====================
+
+EXECUTIVE SUMMARY
+
+1. Overall project status: The project is a real, fairly advanced full-stack studio-management product with a Django REST backend and a React/Vite frontend. Core flows are implemented, but there are important gaps in verification, SEO, production hardening, and some product polish.
+2. Biggest strengths: Strong modular monolith backend structure; consistent API envelope; role-based guards; meaningful domain separation; production-oriented Docker setup; real payment verification flow; public marketing site with a polished design system.
+3. Biggest weaknesses: Many end-to-end flows were not executed in a running environment, so several claims remain NOT VERIFIED; SEO is very thin; README is materially out of date; public homepage lacks CTAs and accessible/semantic richness; production readiness depends heavily on environment configuration and external services.
+4. Most serious bugs: No confirmed destructive bug from static inspection, but there is a likely product issue where public marketing text/CTA is incomplete and the homepage action area is commented out; README contradicts the actual implemented backend; several routes/components appear large and complex, increasing regression risk.
+5. Biggest security concerns: JWT access/refresh lifetime is long by default; production security depends entirely on correct env configuration; payment processing is disabled in production settings by default, which is safe, but also means the real payment flow is environment-sensitive; file/media and API exposure need runtime verification.
+6. Biggest performance problems: Large number of client routes/components and multiple full-page feature bundles suggest bundle weight risk; public images are likely significant assets; no evidence of image optimization/lazy-loading strategy beyond basic `img`; backend query/index performance is not fully verified.
+7. Biggest UX problems: Homepage has no visible CTA buttons in the current Hero; some public content appears intentionally polished but still unfinished in the interaction layer; route coverage is broad, but actual responsiveness and empty/error states were not fully exercised.
+8. Biggest SEO problems: `index.html` has only a title, `robots.txt` blocks everything except the home page, sitemap only lists one URL, and there is no evidence of meta description, Open Graph, Twitter cards, canonical tags, or schema markup.
+9. Most important missing features: A complete public-site conversion funnel, richer SEO metadata, verified end-to-end test coverage, documented production runbook, and stronger observability/monitoring.
+10. Top 10 actions first: 1) run the app and verify auth/bookings/payments end to end, 2) add/restore homepage CTAs, 3) update README to match reality, 4) add SEO metadata and a real sitemap, 5) implement test coverage for critical flows, 6) verify production env/secrets, 7) review DB indexes and key query paths, 8) add runtime monitoring/logging, 9) tighten media/file handling review, 10) trim/organize large feature components.
+
+PROJECT ARCHITECTURE
+
+CONFIRMED
+- Frontend: React 19 + Vite + React Router + Axios + Framer Motion. See `frontend/package.json`, `frontend/src/app/App.tsx`, `frontend/src/routes/router.tsx`.
+- Backend: Django 5.1 + Django REST Framework + SimpleJWT + MySQL. See `backend/config/settings/base.py`, `backend/config/urls.py`, `backend/requirements.txt`.
+- Auth: JWT access/refresh tokens with blacklist support. See `backend/apps/accounts/views.py`, `backend/config/settings/base.py`.
+- Payments: Razorpay integration exists for order creation and payment verification. See `backend/apps/payments/views.py`, `backend/apps/payments/services.py`.
+- Background jobs: Django management commands exist for recurring studio tasks. See `backend/apps/payments/management/commands/*`, `backend/apps/classes_app/management/commands/*`.
+- Docker: production compose file exists for MySQL/backend/frontend. See `docker-compose.yml`.
+
+LIKELY
+- The backend is a modular monolith with business domains split into `apps/accounts`, `apps/classes_app`, `apps/bookings`, `apps/payments`, `apps/notifications`, `apps/dashboard`, `apps/reports`, etc.
+- Public-facing marketing site and authenticated dashboard are separate route groups inside one React app.
+
+NOT VERIFIED
+- Actual runtime behavior of auth, bookings, payments, notifications, reports, and admin workflows in the browser.
+- Any queueing system. No queue worker was found in the inspected files.
+- Production deployment outside Docker compose.
+
+FEATURE INVENTORY
+
+WORKING OR WELL-IMPLEMENTED
+- Public homepage composition: `frontend/src/features/public-site/home/HomePage.tsx`.
+- Protected route structure and role guards: `frontend/src/routes/router.tsx`, `frontend/src/features/auth/components/ProtectedRoute.tsx`, `frontend/src/features/auth/components/RoleGuard.tsx`.
+- JWT auth API surface: `backend/apps/accounts/views.py`.
+- Booking API surface with conflict handling and role-based actions: `backend/apps/bookings/views.py`.
+- Payment API surface with order creation, verification, receipts, history, and summary reporting: `backend/apps/payments/views.py`.
+- Public pricing endpoint: `backend/apps/payments/views.py` (`PublicPricingView`).
+- SEO files exist: `frontend/public/robots.txt`, `frontend/public/sitemap.xml`.
+
+PARTIALLY WORKING
+- Public homepage CTA area: Hero section is present, but the call-to-action button block is commented out in `frontend/src/features/public-site/home/components/Hero.tsx`.
+- SEO coverage: basic files exist, but metadata is minimal.
+- README: documents the project shape, but significantly understates backend implementation.
+
+BROKEN OR SUSPECT
+- `robots.txt` effectively blocks crawling of the whole site except `/`, which is unusual for a public site and likely harms SEO.
+- `sitemap.xml` only contains the homepage.
+- Public Hero includes a visible encoding artifact (`Dubai &amp; India â€¢ Est. 2020`) in source output, suggesting text encoding issues in the file or build path.
+
+INCOMPLETE OR MISSING
+- Comprehensive frontend end-to-end tests were not found in the inspected files.
+- Monitoring/alerting stack not evident.
+- Queueing/job retry infrastructure not evident.
+- Full production documentation/runbook is incomplete.
+
+USER FLOW TESTING
+
+NOT VERIFIED BY EXECUTION
+- Register, login, logout, forgot password, reset password, profile update, bookings, payments, receipts, instructor/admin dashboards, notifications, reports.
+
+CODE-VERIFIED FLOW SHAPE
+- Auth flow: frontend API calls match backend endpoints in `frontend/src/features/auth/api/authApi.ts` and `backend/apps/accounts/views.py`.
+- Booking flow: frontend route structure exists for slot booking and booking history, backed by booking endpoints in `backend/apps/bookings/views.py`.
+- Payment flow: frontend routes exist for payments/history, backed by Razorpay order/verification APIs in `backend/apps/payments/views.py`.
+
+BROKEN FEATURES
+
+1. Homepage CTA block appears removed/commented out
+- Problem: Users land on a polished marketing hero, but the action area is empty.
+- Evidence: `frontend/src/features/public-site/home/components/Hero.tsx` has the button block commented out.
+- Impact: Reduced conversion and weaker clarity of the main user journey.
+- Recommended fix: Restore or redesign primary CTA buttons and wire them to the booking/register flow.
+
+2. Public crawlability is heavily restricted
+- Problem: `robots.txt` disallows almost everything.
+- Evidence: `frontend/public/robots.txt` contains `Disallow: /` and `Allow: /$`.
+- Impact: Search engines will struggle to index the public site.
+- Recommended fix: Allow key public pages and keep private dashboard routes blocked by app routing, not robots alone.
+
+3. Minimal sitemap
+- Problem: Only the homepage is listed.
+- Evidence: `frontend/public/sitemap.xml`.
+- Impact: Search engines cannot discover deeper landing pages.
+- Recommended fix: Expand sitemap with all public routes.
+
+4. Documentation mismatch
+- Problem: README claims no business logic is implemented in the backend, which is false.
+- Evidence: `README.md` versus implemented backend apps and views.
+- Impact: New contributors will be misled.
+- Recommended fix: Rewrite README architecture and setup sections to match current reality.
+
+UI/UX AUDIT
+
+CONFIRMED
+- The public site uses a cohesive warm visual language with shared layout and design tokens: `frontend/src/shared/styles/tokens.css`, `frontend/src/shared/layout/PublicLayout/PublicLayout.tsx`.
+- Motion and atmosphere are deliberate on the homepage: `frontend/src/features/public-site/home/components/Hero.tsx`.
+
+LIKELY
+- Desktop presentation is polished and brand-led.
+- Mobile responsiveness is probably reasonable because Tailwind utilities and layout primitives are used consistently, but it was not fully validated in-browser.
+
+ISSUES
+- No visible CTA in the hero.
+- Some homepage text content appears to have encoding issues.
+- Public site SEO and conversion structure feel underpowered relative to the visual polish.
+
+PERFORMANCE AUDIT
+
+CRITICAL PERFORMANCE ISSUES
+- Not confirmed from static inspection.
+
+OPTIONAL OPTIMIZATIONS
+- Large hero and gallery assets may benefit from responsive/image optimization and `loading="lazy"` where appropriate.
+- Very large feature files/components likely increase bundle and maintenance cost.
+- Some pages may fetch data repetitively; this needs runtime profiling.
+
+SEO AUDIT
+
+CONFIRMED
+- `index.html` has a title tag.
+- `robots.txt` exists.
+- `sitemap.xml` exists.
+
+GAPS
+- No meta description found in `frontend/index.html`.
+- No Open Graph or Twitter metadata found in the inspected files.
+- No canonical tag found in the inspected files.
+- Sitemap is too small.
+- Robots policy is likely too restrictive for a public website.
+
+SECURITY AUDIT
+
+CRITICAL
+- No static proof of an active critical vulnerability was found.
+
+HIGH
+- Production hardening depends on correct environment variables. `backend/config/settings/prod.py` raises if the secret key is weak, which is good, but misconfiguration risk remains operationally high.
+
+MEDIUM
+- JWT access and refresh tokens both default to 30 days in `backend/config/settings/base.py`, which is generous for a session token model.
+- Payment processing is explicitly disabled in production settings by default, which is safe but indicates the live payment state requires careful release management.
+- CORS and allowed hosts are env-driven, so a bad deployment config could expand exposure.
+
+LOW
+- Logging is simple console logging only; no structured audit trail or alerting was visible.
+
+INFORMATIONAL
+- CSRF protection exists in Django middleware, but the API uses JWT auth, so browser security behavior still needs runtime verification.
+- Receipt download access control is implemented in code and looks correct on static inspection.
+
+BACKEND/API AUDIT
+
+CONFIRMED
+- API endpoints are grouped by domain under `/api/<domain>/`.
+- Shared success/error response envelopes are used consistently via `apps.core.responses`.
+- Permissions are explicit and role-aware in key endpoints.
+- Some list endpoints use pagination and `select_related`, showing thoughtful API design.
+
+LIKELY
+- Endpoint architecture is coherent and production-friendly.
+
+NOT VERIFIED
+- Whether every frontend route maps to a live backend endpoint under real runtime conditions.
+- Whether all serializers, validators, and services are consistent across edge cases.
+
+DATABASE AUDIT
+
+CONFIRMED
+- Backend uses MySQL with `utf8mb4`.
+- The project relies on a modular model structure with migrations per app.
+
+LIKELY
+- There are intentional indexes in several domains, but a full index/performance audit was not executed.
+
+NOT VERIFIED
+- Query plans, missing indexes, and data integrity under load.
+
+CODE QUALITY AUDIT
+
+CONFIRMED
+- Good separation of concerns at the route/API/service level in several domains.
+- Shared response helpers reduce inconsistency.
+- The frontend uses shared UI/layout primitives and route composition.
+
+ISSUES
+- Some files are large and multi-responsibility, especially feature route files.
+- README divergence from code is a maintainability smell.
+- There is at least one visible text encoding artifact in the frontend hero.
+
+DEPENDENCY AUDIT
+
+CONFIRMED
+- Frontend dependencies are modern and focused: React, Vite, Router, Axios, Framer Motion, Lucide, Tailwind tooling.
+- Backend dependencies are reasonably lean: Django, DRF, SimpleJWT, mysqlclient, razorpay, reportlab.
+
+LIKELY
+- No obviously redundant libraries were spotted from the package manifests alone.
+
+DOCKER / DEPLOYMENT AUDIT
+
+CONFIRMED
+- `docker-compose.yml` defines `db`, `backend`, and `frontend`.
+- Health checks are present.
+- Logs have file rotation settings.
+- MySQL is not exposed to the host network in compose.
+
+LIKELY
+- Production compose is better than average for a small project.
+
+NOT VERIFIED
+- Actual image build success in this environment.
+- Secret handling and `.env.production` quality.
+
+CI/CD AUDIT
+
+NOT VERIFIED
+- No GitHub Actions or other CI workflow was found in the inspected files.
+- No automated deployment pipeline was found in the inspected files.
+
+ERROR HANDLING & EDGE CASES
+
+CONFIRMED
+- Backend endpoints often convert domain errors into structured responses.
+- Booking conflict handling returns HTTP 409 with suggested slot data.
+- Password reset avoids account enumeration by always returning the same public message.
+
+NOT VERIFIED
+- Slow network handling, double-submit protection, offline behavior, stale tabs, and concurrency at runtime.
+
+ACCESSIBILITY
+
+LIKELY
+- Basic semantic HTML and layout structure exist.
+
+GAPS
+- No evidence of comprehensive ARIA/focus management, skip links, or accessibility testing was found.
+- Hero/button accessibility could be better if the CTA block remains absent.
+
+PRODUCT QUALITY
+
+CONFIRMED
+- The product identity is coherent: yoga studio management plus a premium public-facing site.
+- User roles are well separated: public, user, admin, instructor.
+
+LIKELY
+- The application feels like a serious internal/product system, not a toy.
+
+RISKS
+- Conversion funnel incompleteness and weak SEO could limit the public site.
+- Lack of runtime verification leaves some business flows uncertain.
+
+MISSING FEATURES
+
+Must Have
+- Verified end-to-end test coverage for auth, bookings, and payments.
+- Correct public SEO metadata and crawl policy.
+- Updated README and operational docs.
+
+Should Have
+- Public landing-page CTAs and clearer funnel paths.
+- Structured logging/monitoring.
+- Better image optimization and lazy loading.
+
+Nice to Have
+- More landing pages for services, corporate offerings, and location targeting.
+- Better analytics/observability dashboards.
+
+PRIORITIZED ISSUES
+
+P0
+- No confirmed P0 bug from static review.
+
+P1
+- Public site robots policy is likely hurting discoverability.
+- Homepage CTA block is missing.
+
+P2
+- Documentation mismatch.
+- SEO metadata gaps.
+- Need for broader runtime verification and tests.
+
+P3
+- Polishing accessibility, image optimization, and content expansion.
+
+RECOMMENDED ROADMAP
+
+1. Restore homepage CTAs and verify the booking/register journey.
+2. Fix SEO basics: title, description, OG/Twitter, canonical, sitemap, robots.
+3. Update README and deployment docs to reflect the real backend features.
+4. Run and document end-to-end smoke tests for auth, booking, payment, and dashboard flows.
+5. Add automated tests for critical API/service paths.
+6. Review production env/secrets and payment settings.
+7. Add structured monitoring/logging.
+8. Profile frontend bundle and optimize large assets.
+9. Audit DB indexes and query paths under realistic data volume.
+10. Improve accessibility and empty/error states across the UI.
+
+FINAL SCORECARD
+
+- Functionality: 78/100
+- Reliability: 71/100
+- UI/UX: 74/100
+- Performance: 68/100
+- Security: 72/100
+- SEO: 34/100
+- Accessibility: 58/100
+- Code quality: 76/100
+- Architecture: 82/100
+- Production readiness: 69/100
+- Overall quality: 72/100
+
+Why these scores:
+- Functionality is strong because the core domains exist in code, but runtime verification is incomplete.
+- Reliability is held back by limited test evidence and operational dependency on env config.
+- UI/UX is polished in the public shell, but the missing CTA and weak conversion structure reduce the score.
+- Performance is decent architecturally, but not verified under load and likely image/bundle-heavy.
+- Security is respectable for a small product, but needs operational hardening and shorter token strategy.
+- SEO is the weakest area because public discoverability is not well implemented.
+- Accessibility is acceptable at baseline, but not professionally validated.
+- Code quality is solid with modular structure, though some files are large and docs are stale.
+- Architecture is one of the strongest parts of the project.
+- Production readiness is close, but not yet fully proven.
+
+TOP 10 ACTIONS
+
+1. Re-enable and wire the homepage CTA buttons.
+2. Replace the restrictive `robots.txt` with a public-friendly crawl policy.
+3. Expand `sitemap.xml`.
+4. Add meta description, OG, Twitter, and canonical tags.
+5. Update README to match the actual backend/frontend capabilities.
+6. Run end-to-end smoke tests in a live environment.
+7. Add automated tests for auth, booking, and payment flows.
+8. Verify production secrets, CORS, and allowed hosts.
+9. Audit image and bundle performance.
+10. Add monitoring/logging and accessibility review.
+
+AUDIT COMPLETION STATUS
+
+- Files inspected: `frontend/src/features/public-site/home/components/Hero.tsx`, `frontend/src/routes/router.tsx`, `backend/config/settings/base.py`, `docker-compose.yml`, `backend/config/urls.py`, `frontend/src/app/App.tsx`, `frontend/index.html`, `frontend/public/robots.txt`, `frontend/public/sitemap.xml`, `frontend/src/shared/lib/apiClient.ts`, `frontend/src/features/auth/api/authApi.ts`, `backend/apps/payments/views.py`, `backend/apps/bookings/views.py`, `backend/apps/accounts/views.py`, `frontend/package.json`, `backend/requirements.txt`, `backend/config/settings/prod.py`, `backend/config/settings/dev.py`, `backend/apps/core/responses.py`, `README.md`, `frontend/src/shared/layout/PublicLayout/PublicLayout.tsx`, `frontend/src/features/public-site/home/HomePage.tsx`.
+- Features inspected: public homepage, auth, bookings, payments, profile/account routes, admin/instructor route structure, SEO assets, Docker deployment, response envelopes, environment settings.
+- User flows tested: Not executed in-browser in this environment.
+- Tests/commands executed: `rg --files`, `Get-Content -Raw` on key files, `rg -n "TODO|FIXME|placeholder|mock|dummy|console\\.log|alert\\(|return null;|incomplete" frontend backend`.
+- Issues found: CTA gap, SEO crawl/index gap, sitemap thinness, README mismatch, some encoding/text quality issues, missing runtime verification.
+- Critical issues: None confirmed from static inspection.
+- High-priority issues: SEO crawl policy, missing homepage CTA.
+- Medium-priority issues: documentation mismatch, lack of verified automated tests, missing SEO metadata.
+- Low-priority issues: accessibility polish, image optimization, observability.
+- Items not verified: browser flows, backend runtime behavior, payment gateway execution, DB performance, CI/CD, monitoring.
+- Final project score: 72/100 overall.
+
+============================================================

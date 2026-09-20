@@ -62,12 +62,15 @@ export const router = createBrowserRouter([
               { path: 'payments', element: <PaymentsPage /> },
               { path: 'notifications', element: <NotificationsPage /> },
               { path: 'reports', element: <ReportsPage /> },
+              { path: 'profile', element: <ProfilePage /> },
+              { path: 'profile/change-email', element: <ChangeEmailPage /> },
+              { path: 'profile/change-password', element: <ChangePasswordPage /> },
             ],
           },
         ],
       },
       {
-        element: <RoleGuard allow={['user', 'admin']} />,
+        element: <RoleGuard allow={['user']} />,
         children: [
           {
             path: '/account',

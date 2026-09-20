@@ -11,6 +11,7 @@ import type {
   ResetPasswordPayload,
   User,
   VerifyEmailChangePayload,
+  VerifyForgotPasswordOtpPayload,
 } from '../types';
 
 // Thin wrapper around the accounts endpoints (backend/apps/accounts).
@@ -71,6 +72,11 @@ export const authApi = {
 
   forgotPassword: async (payload: ForgotPasswordPayload): Promise<void> => {
     await apiClient.post('/auth/forgot-password/', payload);
+  },
+
+  verifyForgotPasswordOtp: async (payload: VerifyForgotPasswordOtpPayload): Promise<{ token: string }> => {
+    const { data } = await apiClient.post<ApiSuccess<{ token: string }>>('/auth/forgot-password/verify/', payload);
+    return data.data;
   },
 
   resetPassword: async (payload: ResetPasswordPayload): Promise<void> => {

@@ -21,16 +21,19 @@ from .serializers import (
     ResetPasswordSerializer,
     UserSerializer,
     VerifyEmailChangeSerializer,
+    VerifyPasswordResetOTPSerializer,
     VerifyRegistrationOTPSerializer,
 )
 from .services import (
     EmailChangeError,
+    PasswordResetError,
     RegistrationOTPError,
-    issue_password_reset_token,
+    issue_password_reset_otp,
     request_email_change,
     request_registration_otp,
     reset_password_with_token,
     verify_email_change,
+    verify_password_reset_otp,
     verify_registration_otp,
 )
 
@@ -216,16 +219,41 @@ class VerifyEmailChangeView(APIView):
 
 
 class ForgotPasswordView(APIView):
-    """POST { email } -> always 200, regardless of whether the email exists,
-    to avoid leaking which addresses have accounts."""
+    """POST { email } -> sends a 6-digit reset code if the email matches an
+    account, otherwise reports it doesn't. Requested explicitly this way
+    (checking the email first) even though it lets a caller enumerate
+    accounts, trading that off against telling the user plainly when they've
+    mistyped their email."""
 
     permission_classes = [AllowAny]
 
     def post(self, request):
         serializer = ForgotPasswordSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        issue_password_reset_token(serializer.validated_data['email'])
-        return success_response(message='If that email is registered, a reset link has been sent.')
+        try:
+            issue_password_reset_otp(serializer.validated_data['email'])
+        except PasswordResetError as exc:
+            return error_response(str(exc), code=status.HTTP_404_NOT_FOUND)
+        return success_response(message='A reset code has been sent to your email.')
+
+
+class VerifyPasswordResetOTPView(APIView):
+    """POST { email, otp_code } -> verifies the code and returns the token
+    ResetPasswordView needs to actually set the new password."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        serializer = VerifyPasswordResetOTPSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        try:
+            reset_token = verify_password_reset_otp(
+                serializer.validated_data['email'],
+                serializer.validated_data['otp_code'],
+            )
+        except PasswordResetError as exc:
+            return error_response(str(exc))
+        return success_response(data={'token': reset_token.token}, message='Code verified.')
 
 
 class ResetPasswordView(APIView):

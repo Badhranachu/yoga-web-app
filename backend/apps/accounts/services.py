@@ -14,38 +14,81 @@ class RegistrationOTPError(Exception):
     """Raised for invalid/expired/mismatched registration-email OTP verification."""
 
 
-def issue_password_reset_token(email: str) -> None:
-    """Creates a reset token and emails the reset link, if the email matches
-    an account. Silent no-op otherwise — the caller always returns a generic
-    success message so this endpoint can't be used to enumerate accounts.
+class PasswordResetError(Exception):
+    """Raised for an unknown email, or invalid/expired/mismatched reset-code
+    verification."""
+
+
+@transaction.atomic
+def issue_password_reset_otp(email: str) -> PasswordResetToken:
+    """Starts the forgot-password flow: verifies the email belongs to an
+    account, then emails it a 6-digit code. Raises PasswordResetError if no
+    account matches, so the caller can tell the user right away instead of
+    the usual silent-no-op pattern — an explicit requirement here, since the
+    reset flow already requires knowing the code, not just the email.
+    Invalidates any still-pending code for this user first.
     """
     try:
         user = User.objects.get(email=email.lower().strip(), is_active=True)
     except User.DoesNotExist:
-        return
+        raise PasswordResetError('No account found with this email address.')
+
+    PasswordResetToken.objects.filter(user=user, used_at__isnull=True, verified_at__isnull=True).update(
+        used_at=timezone.now()
+    )
 
     reset_token = PasswordResetToken.objects.create(user=user)
-    reset_link = f'{settings.FRONTEND_URL}/reset-password?token={reset_token.token}'
 
-    send_mail(
-        subject='Reset your Harmony Fusion Studio password',
-        message=(
-            f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
-            f'Use the link below to reset your password. It expires in '
-            f'{settings.PASSWORD_RESET_TOKEN_TTL_HOURS} hour(s).\n\n'
-            f'{reset_link}\n\n'
-            "If you didn't request this, you can safely ignore this email."
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=[user.email],
-        fail_silently=True,
+    try:
+        send_mail(
+            subject='Your Harmony Fusion Studio password reset code',
+            message=(
+                f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
+                f'Use the code below to reset your password. It expires in 5 minutes.\n\n'
+                f'{reset_token.otp_code}\n\n'
+                "If you didn't request this, you can safely ignore this email."
+            ),
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=[user.email],
+            fail_silently=False,
+        )
+    except Exception as exc:
+        raise PasswordResetError('Could not send the verification email. Please try again later.') from exc
+
+    return reset_token
+
+
+@transaction.atomic
+def verify_password_reset_otp(email: str, otp_code: str) -> PasswordResetToken:
+    """Verifies the code for this email's most recent pending reset request.
+    On success, marks the token verified so ResetPasswordView will accept it."""
+    try:
+        user = User.objects.get(email=email.lower().strip(), is_active=True)
+    except User.DoesNotExist:
+        raise PasswordResetError('This code is invalid or has expired. Request a new one.')
+
+    reset_token = (
+        PasswordResetToken.objects.select_for_update()
+        .filter(user=user, used_at__isnull=True, verified_at__isnull=True)
+        .order_by('-created_at')
+        .first()
     )
+    if reset_token is None or not reset_token.can_be_verified:
+        raise PasswordResetError('This code is invalid or has expired. Request a new one.')
+
+    if reset_token.otp_code != otp_code.strip():
+        reset_token.register_failed_attempt()
+        raise PasswordResetError('Incorrect code.')
+
+    reset_token.mark_verified()
+    return reset_token
 
 
 @transaction.atomic
 def reset_password_with_token(token: str, new_password: str) -> bool:
-    """Consumes a reset token and sets the new password. Returns False if the
-    token is missing/expired/already used, True on success."""
+    """Consumes a verified reset token and sets the new password. Returns
+    False if the token is missing/unverified/expired/already used, True on
+    success."""
     try:
         reset_token = PasswordResetToken.objects.select_for_update().select_related('user').get(token=token)
     except PasswordResetToken.DoesNotExist:

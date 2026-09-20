@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Users, UserSquare2, CalendarX2, CalendarOff, Ticket, CreditCard, FileBarChart2, Bell } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, Users, UserSquare2, CalendarX2, CalendarOff, Ticket, CreditCard, FileBarChart2, Bell, UserCircle2 } from 'lucide-react';
 import { DashboardLayout } from '@/shared/layout/DashboardLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
@@ -15,6 +15,7 @@ const adminNavItems: SidebarNavItem[] = [
   { to: '/dashboard/payments', label: 'Payments', icon: CreditCard },
   { to: '/dashboard/notifications', label: 'Notifications', icon: Bell },
   { to: '/dashboard/reports', label: 'Reports', icon: FileBarChart2 },
+  { to: '/dashboard/profile', label: 'My Profile', icon: UserCircle2 },
 ];
 
 // Admin-role dashboard shell: full studio-management navigation.

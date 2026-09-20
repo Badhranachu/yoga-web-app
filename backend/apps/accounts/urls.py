@@ -13,6 +13,7 @@ from .views import (
     RequestRegistrationOTPView,
     ResetPasswordView,
     VerifyEmailChangeView,
+    VerifyPasswordResetOTPView,
     VerifyRegistrationOTPView,
 )
 
@@ -31,5 +32,6 @@ urlpatterns = [
     path('change-email/request/', RequestEmailChangeView.as_view(), name='change-email-request'),
     path('change-email/verify/', VerifyEmailChangeView.as_view(), name='change-email-verify'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='forgot-password'),
+    path('forgot-password/verify/', VerifyPasswordResetOTPView.as_view(), name='forgot-password-verify'),
     path('reset-password/', ResetPasswordView.as_view(), name='reset-password'),
 ]

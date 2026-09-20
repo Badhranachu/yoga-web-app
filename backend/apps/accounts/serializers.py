@@ -122,17 +122,12 @@ class AdminCreateAdminSerializer(serializers.ModelSerializer):
     def validate(self, attrs):
         if attrs['password'] != attrs['password_confirm']:
             raise serializers.ValidationError({'password_confirm': "Passwords don't match."})
-        otp = get_verified_registration_otp(attrs['email'])
-        if otp is None:
-            raise serializers.ValidationError({'email': 'Please verify this email with the code sent to it first.'})
-        self._otp = otp
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password_confirm')
         password = validated_data.pop('password')
         user = User.objects.create_user(password=password, role=User.Role.ADMIN, **validated_data)
-        self._otp.mark_consumed()
         return user
 
 
@@ -190,6 +185,11 @@ class VerifyEmailChangeSerializer(serializers.Serializer):
 
 class ForgotPasswordSerializer(serializers.Serializer):
     email = serializers.EmailField()
+
+
+class VerifyPasswordResetOTPSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp_code = serializers.CharField(max_length=6)
 
 
 class ResetPasswordSerializer(serializers.Serializer):

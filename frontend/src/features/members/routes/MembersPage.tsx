@@ -4,7 +4,6 @@ import { extractErrorMessage } from '@/shared/lib/apiErrors';
 import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 import { Button, TextField } from '@/shared/ui';
 import { FormError, FormSuccess } from '@/shared/ui/FormFeedback/FormFeedback';
-import { EmailOtpField } from '@/features/auth/components/EmailOtpField';
 import { adminsApi } from '../api/adminsApi';
 import type { AdminAccount } from '../types/admin';
 
@@ -23,7 +22,6 @@ export const MembersPage = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
-  const [emailVerified, setEmailVerified] = useState(false);
   const [admins, setAdmins] = useState<AdminAccount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [listError, setListError] = useState<string | null>(null);
@@ -52,7 +50,6 @@ export const MembersPage = () => {
     setIsSubmitting(false);
     setErrorMessage(null);
     setForm(initialForm);
-    setEmailVerified(false);
   };
 
   const handleChange = (field: keyof typeof initialForm, value: string) => {
@@ -140,15 +137,15 @@ export const MembersPage = () => {
             <FormError message={errorMessage} />
 
             <div className="space-y-5">
-              <EmailOtpField
-                email={form.email}
-                onEmailChange={(value) => handleChange('email', value)}
-                verified={emailVerified}
-                onVerified={() => setEmailVerified(true)}
-              />
-
-              {emailVerified && (
-                <form className="space-y-5" onSubmit={handleSubmit}>
+              <form className="space-y-5" onSubmit={handleSubmit}>
+                  <TextField
+                    label="Email"
+                    name="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(event) => handleChange('email', event.target.value)}
+                    required
+                  />
                   <TextField
                     label="First Name"
                     name="first_name"
@@ -199,7 +196,6 @@ export const MembersPage = () => {
                     </Button>
                   </div>
                 </form>
-              )}
             </div>
           </div>
         </div>

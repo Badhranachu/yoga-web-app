@@ -83,7 +83,12 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
 
 
 class PasswordResetToken(TimeStampedModel):
-    """Single-use, expiring token issued for the forgot-password flow."""
+    """A pending forgot-password flow: a 6-digit code is emailed to the
+    account holder first (see apps.accounts.services.issue_password_reset_otp),
+    and only once that code is verified does `token` become usable to set a
+    new password (verified_at gates ResetPasswordView, mirroring how
+    RegistrationOTP.verified_at gates account creation).
+    """
 
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
@@ -91,7 +96,10 @@ class PasswordResetToken(TimeStampedModel):
         related_name='password_reset_tokens',
     )
     token = models.CharField(max_length=128, unique=True, default=_generate_token)
-    expires_at = models.DateTimeField(default=_default_expiry)
+    otp_code = models.CharField(max_length=6, default=_generate_otp)
+    attempts = models.PositiveSmallIntegerField(default=0)
+    verified_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(default=_otp_expiry)
     used_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
@@ -102,8 +110,20 @@ class PasswordResetToken(TimeStampedModel):
         return f'Reset token for {self.user_id}'
 
     @property
+    def can_be_verified(self):
+        return self.used_at is None and self.verified_at is None and timezone.now() < self.expires_at and self.attempts < 5
+
+    @property
     def is_valid(self):
-        return self.used_at is None and timezone.now() < self.expires_at
+        return self.used_at is None and self.verified_at is not None and timezone.now() < self.expires_at
+
+    def register_failed_attempt(self):
+        self.attempts += 1
+        self.save(update_fields=['attempts', 'updated_at'])
+
+    def mark_verified(self):
+        self.verified_at = timezone.now()
+        self.save(update_fields=['verified_at', 'updated_at'])
 
     def mark_used(self):
         self.used_at = timezone.now()

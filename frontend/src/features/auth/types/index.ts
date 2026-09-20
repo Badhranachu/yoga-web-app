@@ -43,6 +43,11 @@ export type ForgotPasswordPayload = {
   email: string;
 };
 
+export type VerifyForgotPasswordOtpPayload = {
+  email: string;
+  otp_code: string;
+};
+
 export type ResetPasswordPayload = {
   token: string;
   new_password: string;
