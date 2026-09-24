@@ -194,7 +194,7 @@ export const MembersPage = () => {
     setEditError(null);
     setEditingAccount(account);
     if (account.role === 'admin') {
-      const [first_name, ...rest] = account.name === '—' ? [''] : account.name.split(' ');
+      const [first_name = '', ...rest] = account.name === '—' ? [''] : account.name.split(' ');
       setEditAdminForm({ first_name, last_name: rest.join(' '), phone_number: account.phone === '—' ? '' : account.phone, password: '' });
     } else {
       setEditCustomerForm({ username: account.name === '—' ? '' : account.name, email: account.email, password: '' });
