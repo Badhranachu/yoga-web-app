@@ -475,12 +475,12 @@ def revert_attended(booking: Booking) -> Booking:
 
 
 # Self-attendance window: an instructor can mark their own assigned
-# booking attended starting a few minutes before the slot's official
-# start time (early arrivals shouldn't be blocked) through 10 minutes
-# after it (late enough to confirm the class actually started, not so
-# late that a forgotten class from hours ago could be waved through).
-INSTRUCTOR_ATTEND_WINDOW_BEFORE_MINUTES = 5
-INSTRUCTOR_ATTEND_WINDOW_AFTER_MINUTES = 10
+# booking attended starting 15 minutes before the slot's official start
+# time (early arrivals shouldn't be blocked) through 15 minutes after it
+# (late enough to confirm the class actually started, not so late that a
+# forgotten class from hours ago could be waved through).
+INSTRUCTOR_ATTEND_WINDOW_BEFORE_MINUTES = 15
+INSTRUCTOR_ATTEND_WINDOW_AFTER_MINUTES = 15
 
 
 def _minutes_from_slot_start(slot: Slot, now) -> float:
@@ -582,4 +582,41 @@ def get_instructor_stats(instructor_profile) -> dict:
         'classes_today_total': classes_bucket(is_today),
         'classes_month_total': classes_bucket(is_this_month),
         'upcoming_count': len(upcoming),
+    }
+
+
+def get_instructor_attendance_counts(instructor_profile, *, date_from=None, date_to=None) -> dict:
+    """Upcoming/attended/not-attended slot counts for one instructor,
+    optionally scoped to a slot-date range — the admin overview's per-card
+    numbers. Unlike get_instructor_stats (today/month/all-time buckets for
+    the instructor's own dashboard), this takes an arbitrary date_from/
+    date_to window so an admin can filter by any range.
+    """
+    now = timezone.localtime()
+    today = now.date()
+
+    bookings = Booking.objects.filter(instructor=instructor_profile).select_related('slot')
+    if date_from is not None:
+        bookings = bookings.filter(slot__date__gte=date_from)
+    if date_to is not None:
+        bookings = bookings.filter(slot__date__lte=date_to)
+
+    def has_ended(slot) -> bool:
+        return slot.date < today or (slot.date == today and slot.end_time <= now.time())
+
+    upcoming_count = 0
+    attended_count = 0
+    not_attended_count = 0
+    for booking in bookings:
+        if booking.status == Booking.Status.ATTENDED:
+            attended_count += 1
+        elif has_ended(booking.slot):
+            not_attended_count += 1
+        else:
+            upcoming_count += 1
+
+    return {
+        'upcoming_count': upcoming_count,
+        'attended_count': attended_count,
+        'not_attended_count': not_attended_count,
     }

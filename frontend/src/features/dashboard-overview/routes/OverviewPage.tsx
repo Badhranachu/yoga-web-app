@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Activity, CalendarDays, CalendarOff, CreditCard, DollarSign, HeartPulse, Layers, Users, UserCheck, UserX, WalletCards } from 'lucide-react';
+import { Activity, CalendarCheck2, CalendarDays, CalendarOff, CalendarX2, CreditCard, DollarSign, HeartPulse, Layers, Users, UserCheck, UserX, WalletCards } from 'lucide-react';
 import { dashboardApi } from '../api/dashboardApi';
 import { DashboardMetricCard } from '../components/DashboardMetricCard';
 import { DashboardTrendChart } from '../components/DashboardTrendChart';
@@ -7,7 +7,7 @@ import { RecentBookingsWidget } from '../components/RecentBookingsWidget';
 import { RecentPaymentsWidget } from '../components/RecentPaymentsWidget';
 import type { DashboardOverview } from '../types';
 
-const money = (amount: string) => `AED ${amount}`;
+const money = (amount: string) => `₹${amount}`;
 
 export const OverviewPage = () => {
   const [overview, setOverview] = useState<DashboardOverview | null>(null);
@@ -28,6 +28,8 @@ export const OverviewPage = () => {
     ['Expired Subscriptions', metrics.expired_subscriptions, UserX], ['Booked Slots', metrics.booked_slots, Layers],
     ['Available Slots', metrics.available_slots, Activity], ['Transfer Requests', metrics.transfer_requests, HeartPulse],
     ['Upcoming Leaves', metrics.upcoming_leaves, CalendarOff],
+    ['Upcoming Bookings', metrics.upcoming_bookings, CalendarDays], ['Attended', metrics.attended_bookings, CalendarCheck2],
+    ['Not Attended', metrics.not_attended_bookings, CalendarX2],
   ] as const;
 
   return (

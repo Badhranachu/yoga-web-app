@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
@@ -19,6 +20,7 @@ from .serializers import (
     RequestEmailChangeSerializer,
     RequestRegistrationOTPSerializer,
     ResetPasswordSerializer,
+    UpdateAdminSerializer,
     UserSerializer,
     VerifyEmailChangeSerializer,
     VerifyPasswordResetOTPSerializer,
@@ -59,7 +61,7 @@ class AdminListCreateView(APIView):
     permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request):
-        admins = User.objects.filter(role=User.Role.ADMIN)
+        admins = User.objects.filter(role=User.Role.ADMIN, is_active=True)
         return success_response(data=UserSerializer(admins, many=True).data)
 
     def post(self, request):
@@ -71,6 +73,30 @@ class AdminListCreateView(APIView):
             message='Admin account created successfully.',
             status=status.HTTP_201_CREATED,
         )
+
+
+class AdminDetailView(APIView):
+    """PATCH: edit another admin's name/phone/password. DELETE: deactivate
+    an admin account (soft delete via is_active, same as MemberDetailView —
+    preserves history like bookings/payments tied to the account). An admin
+    may not deactivate their own account through this endpoint."""
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def patch(self, request, pk):
+        admin = get_object_or_404(User, pk=pk, role=User.Role.ADMIN)
+        serializer = UpdateAdminSerializer(admin, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return success_response(data=UserSerializer(admin).data, message='Admin updated successfully.')
+
+    def delete(self, request, pk):
+        admin = get_object_or_404(User, pk=pk, role=User.Role.ADMIN)
+        if admin.pk == request.user.pk:
+            return error_response('You cannot remove your own admin account.', code=status.HTTP_400_BAD_REQUEST)
+        admin.is_active = False
+        admin.save(update_fields=['is_active'])
+        return success_response(message='Admin account removed.')
 
 
 class RequestRegistrationOTPView(APIView):

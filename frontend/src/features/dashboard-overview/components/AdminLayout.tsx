@@ -1,4 +1,4 @@
-import { LayoutDashboard, CalendarDays, Users, UserSquare2, CalendarX2, CalendarOff, Ticket, CreditCard, FileBarChart2, Bell, UserCircle2 } from 'lucide-react';
+import { LayoutDashboard, CalendarDays, CalendarCheck2, Users, UserSquare2, CalendarX2, CalendarOff, Ticket, CreditCard, FileBarChart2, Bell, UserCircle2 } from 'lucide-react';
 import { DashboardLayout } from '@/shared/layout/DashboardLayout';
 import { useAuth } from '@/features/auth/hooks/useAuth';
 import type { SidebarNavItem } from '@/shared/layout/DashboardLayout/DashboardSidebar';
@@ -6,6 +6,7 @@ import { NotificationBell } from '@/features/notifications/components/Notificati
 
 const adminNavItems: SidebarNavItem[] = [
   { to: '/dashboard', label: 'Overview', icon: LayoutDashboard, end: true },
+  { to: '/dashboard/instructor-attendance', label: 'Instructor Attendance', icon: CalendarCheck2 },
   { to: '/dashboard/classes', label: 'Timetable', icon: CalendarDays },
   { to: '/dashboard/institution-leave', label: 'Institution Full Leave', icon: CalendarOff },
   { to: '/dashboard/members', label: 'Members', icon: Users },

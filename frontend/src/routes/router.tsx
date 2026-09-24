@@ -9,6 +9,7 @@ import { ProtectedRoute } from '@/features/auth/components/ProtectedRoute';
 import { RoleGuard } from '@/features/auth/components/RoleGuard';
 import { AdminLayout } from '@/features/dashboard-overview/components/AdminLayout';
 import { OverviewPage } from '@/features/dashboard-overview/routes/OverviewPage';
+import { InstructorAttendancePage } from '@/features/dashboard-overview/routes/InstructorAttendancePage';
 import { ClassesPage } from '@/features/classes/routes/ClassesPage';
 import { InstitutionLeavePage } from '@/features/classes/routes/InstitutionLeavePage';
 import { MembersPage } from '@/features/members/routes/MembersPage';
@@ -53,6 +54,7 @@ export const router = createBrowserRouter([
             element: <AdminLayout />,
             children: [
               { index: true, element: <OverviewPage /> },
+              { path: 'instructor-attendance', element: <InstructorAttendancePage /> },
               { path: 'classes', element: <ClassesPage /> },
               { path: 'institution-leave', element: <InstitutionLeavePage /> },
               { path: 'members', element: <MembersPage /> },

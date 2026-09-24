@@ -82,7 +82,7 @@ export const SubscriptionPlanCard = ({ plan, onUpdated }: SubscriptionPlanCardPr
         <>
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
             <TextField
-              label="Monthly Price (AED)"
+              label="Monthly Price (INR)"
               type="number"
               min="0"
               step="0.01"
@@ -110,8 +110,8 @@ export const SubscriptionPlanCard = ({ plan, onUpdated }: SubscriptionPlanCardPr
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <div className="mb-1 text-xs uppercase tracking-widest text-[#786A58]">Monthly Price (AED)</div>
-            <div className="text-lg text-[#2B241E]">{plan.monthly_price}</div>
+            <div className="mb-1 text-xs uppercase tracking-widest text-[#786A58]">Monthly Price (INR)</div>
+            <div className="text-lg text-[#2B241E]">₹{plan.monthly_price}</div>
           </div>
           <div>
             <div className="mb-1 text-xs uppercase tracking-widest text-[#786A58]">Included Sessions</div>

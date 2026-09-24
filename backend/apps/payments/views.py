@@ -129,7 +129,7 @@ class PublicPricingView(APIView):
             'monthly_price': plan.monthly_price if plan else None,
             'included_sessions': plan.included_sessions if plan else None,
             'single_slot_price': get_single_slot_price(),
-            'currency': 'AED',
+            'currency': 'INR',
         })
 
 
@@ -366,7 +366,7 @@ class RevenueSummaryView(APIView):
             for item in by_type
         }
         return success_response(data={
-            'currency': 'AED',
+            'currency': 'INR',
             'total_revenue': str(totals['total'] or 0),
             'transaction_count': totals['count'],
             'by_type': type_summary,

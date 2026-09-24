@@ -17,3 +17,10 @@ export type CreateAdminPayload = {
   password: string;
   password_confirm: string;
 };
+
+export type UpdateAdminPayload = {
+  first_name?: string;
+  last_name?: string;
+  phone_number?: string;
+  password?: string;
+};

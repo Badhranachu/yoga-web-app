@@ -10,6 +10,7 @@ from rest_framework.views import APIView
 from apps.core.permissions import IsAdminRole, IsInstructorRole
 from apps.core.responses import error_response, success_response
 from apps.classes_app.serializers import SlotSerializer
+from apps.instructors.models import InstructorProfile
 
 from .models import Booking, BookingChangeRequest
 from .serializers import (
@@ -29,6 +30,7 @@ from .services import (
     approve_change_request,
     create_transfer_request,
     create_booking,
+    get_instructor_attendance_counts,
     get_instructor_stats,
     instructor_mark_attended,
     mark_attended,
@@ -288,6 +290,79 @@ class InstructorStatsView(APIView):
 
     def get(self, request):
         return success_response(data=get_instructor_stats(request.user.instructor_profile))
+
+
+class AdminInstructorAttendanceOverviewView(APIView):
+    """GET, for every instructor: how many assigned slots are upcoming,
+    attended, and not attended (booked but the slot already ended without
+    being marked attended) — the admin-facing counterpart to
+    InstructorStatsView, one card per instructor instead of just "me".
+
+    Optional ?date_from=YYYY-MM-DD&date_to=YYYY-MM-DD scopes the counts to
+    slots within that range (both ends inclusive); omitted, counts cover
+    every booking ever assigned to that instructor.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request):
+        date_from = request.query_params.get('date_from') or None
+        date_to = request.query_params.get('date_to') or None
+
+        profiles = InstructorProfile.objects.select_related('user').all()
+        data = []
+        for profile in profiles:
+            counts = get_instructor_attendance_counts(profile, date_from=date_from, date_to=date_to)
+            data.append({
+                'id': profile.id,
+                'username': profile.username,
+                'email': profile.user.email,
+                'photo': profile.photo.url if profile.photo else None,
+                **counts,
+            })
+        return success_response(data=data)
+
+
+class AdminInstructorAttendanceDetailView(APIView):
+    """GET the actual bookings behind one instructor's attendance counts
+    (see AdminInstructorAttendanceOverviewView), grouped into upcoming /
+    attended / not_attended — what the admin sees after tapping a card.
+    Same optional date_from/date_to scoping as the overview endpoint.
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request, pk):
+        profile = get_object_or_404(InstructorProfile, pk=pk)
+        date_from = request.query_params.get('date_from') or None
+        date_to = request.query_params.get('date_to') or None
+
+        bookings = Booking.objects.filter(instructor=profile).select_related('slot', 'user')
+        if date_from:
+            bookings = bookings.filter(slot__date__gte=date_from)
+        if date_to:
+            bookings = bookings.filter(slot__date__lte=date_to)
+
+        now = timezone.localtime()
+        today = now.date()
+
+        def has_ended(slot) -> bool:
+            return slot.date < today or (slot.date == today and slot.end_time <= now.time())
+
+        upcoming, attended, not_attended = [], [], []
+        for booking in bookings.order_by('slot__date', 'slot__start_time'):
+            if booking.status == Booking.Status.ATTENDED:
+                attended.append(booking)
+            elif has_ended(booking.slot):
+                not_attended.append(booking)
+            else:
+                upcoming.append(booking)
+
+        return success_response(data={
+            'upcoming': InstructorBookingSerializer(upcoming, many=True).data,
+            'attended': InstructorBookingSerializer(attended, many=True).data,
+            'not_attended': InstructorBookingSerializer(not_attended, many=True).data,
+        })
 
 
 class CreateTransferRequestView(APIView):

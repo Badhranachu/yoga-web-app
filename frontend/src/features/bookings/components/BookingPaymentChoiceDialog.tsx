@@ -73,8 +73,8 @@ export const BookingPaymentChoiceDialog = ({
           <div className="rounded-2xl border border-[#2B241E]/10 bg-white/40 p-5 flex flex-col">
             <div className="text-xs uppercase tracking-widest text-[#786A58]">Drop-In</div>
             <div className="mt-2 font-serif text-3xl text-[#2B241E]">
-              {slotPrice}
-              <span className="text-sm text-[#786A58]"> AED / class</span>
+              ₹{slotPrice}
+              <span className="text-sm text-[#786A58]"> / class</span>
             </div>
             <p className="mt-2 text-xs text-[#786A58] flex-1">Pay once for just this slot, no commitment.</p>
             <button
@@ -83,7 +83,7 @@ export const BookingPaymentChoiceDialog = ({
               disabled={isProcessing}
               className="mt-4 rounded-full px-4 py-2.5 text-xs uppercase tracking-widest border border-[#2B241E]/20 text-[#2B241E] hover:border-[#D8B46A] hover:text-[#D8B46A] transition-colors disabled:opacity-40"
             >
-              {isProcessing ? 'Processing…' : `Pay ${slotPrice} AED for This Slot`}
+              {isProcessing ? 'Processing…' : `Pay ₹${slotPrice} for This Slot`}
             </button>
           </div>
 
@@ -91,12 +91,12 @@ export const BookingPaymentChoiceDialog = ({
             <div className="rounded-2xl border border-[#2B241E] bg-[#2B241E] p-5 flex flex-col text-white">
               <div className="text-xs uppercase tracking-widest text-[#D8B46A]">Monthly Plan · Most Popular</div>
               <div className="mt-2 font-serif text-3xl">
-                {plan.monthly_price}
-                <span className="text-sm text-white/70"> AED / month</span>
+                ₹{plan.monthly_price}
+                <span className="text-sm text-white/70"> / month</span>
               </div>
               <p className="mt-2 text-xs text-white/70 flex-1">
                 {plan.included_sessions} sessions this cycle
-                {perSessionMonthly !== null && ` — about ${perSessionMonthly.toFixed(0)} AED/class`}. Books this
+                {perSessionMonthly !== null && ` — about ₹${perSessionMonthly.toFixed(0)}/class`}. Books this
                 slot immediately once active.
               </p>
               <button

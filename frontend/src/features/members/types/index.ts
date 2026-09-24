@@ -12,3 +12,9 @@ export type CreateMemberPayload = {
   password: string;
   password_confirm: string;
 };
+
+export type UpdateMemberPayload = {
+  username?: string;
+  email?: string;
+  password?: string;
+};

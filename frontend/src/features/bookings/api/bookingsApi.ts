@@ -7,6 +7,8 @@ import type {
   BookingChangeRequest,
   BookingConflictData,
   CreateBookingPayload,
+  InstructorAttendanceDetail,
+  InstructorAttendanceOverview,
   InstructorBooking,
   InstructorStats,
 } from '../types';
@@ -27,6 +29,11 @@ export type BookingHistoryParams = {
 export type BookingChangeRequestPayload = {
   booking_id: number;
   slot_id: number;
+};
+
+export type AttendanceDateRangeParams = {
+  date_from?: string;
+  date_to?: string;
 };
 
 export const getSuggestedSlotFromConflict = (error: unknown): Slot | null => {
@@ -92,6 +99,26 @@ export const bookingsApi = {
 
   getInstructorStats: async (): Promise<InstructorStats> => {
     const { data } = await apiClient.get<ApiSuccess<InstructorStats>>('/bookings/instructor/stats/');
+    return data.data;
+  },
+
+  getAdminInstructorAttendance: async (
+    params: AttendanceDateRangeParams = {},
+  ): Promise<InstructorAttendanceOverview[]> => {
+    const { data } = await apiClient.get<ApiSuccess<InstructorAttendanceOverview[]>>('/bookings/admin/instructor-attendance/', {
+      params,
+    });
+    return data.data;
+  },
+
+  getAdminInstructorAttendanceDetail: async (
+    instructorId: number,
+    params: AttendanceDateRangeParams = {},
+  ): Promise<InstructorAttendanceDetail> => {
+    const { data } = await apiClient.get<ApiSuccess<InstructorAttendanceDetail>>(
+      `/bookings/admin/instructor-attendance/${instructorId}/`,
+      { params },
+    );
     return data.data;
   },
 

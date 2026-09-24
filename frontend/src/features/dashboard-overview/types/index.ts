@@ -10,6 +10,9 @@ export type DashboardMetric = {
   available_slots: number;
   transfer_requests: number;
   upcoming_leaves: number;
+  upcoming_bookings: number;
+  attended_bookings: number;
+  not_attended_bookings: number;
 };
 
 export type TrendPoint = { date: string; label: string; value: string | number };

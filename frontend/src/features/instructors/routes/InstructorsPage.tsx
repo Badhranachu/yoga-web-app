@@ -179,38 +179,26 @@ export const InstructorsPage = () => {
         ) : instructors.length === 0 ? (
           <p className="p-6 text-sm text-[#786A58]">No instructors yet. Add one to get started.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
-                  <th className="px-6 py-4 font-medium">Photo</th>
-                  <th className="px-6 py-4 font-medium">Username</th>
-                  <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Age</th>
-                  <th className="px-6 py-4 font-medium">Show on Homepage</th>
-                  <th className="px-6 py-4 font-medium">Created</th>
-                  <th className="px-6 py-4 font-medium">View</th>
-                  <th className="px-6 py-4 font-medium">Edit</th>
-                </tr>
-              </thead>
-              <tbody>
-                {instructors.map((instructor) => (
-                  <tr key={instructor.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
-                    <td className="px-6 py-4">
-                      {instructor.photo ? (
-                        <img src={instructor.photo} alt="" className="h-12 w-12 rounded-full object-cover" />
-                      ) : (
-                        <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2B241E]/10 text-xs text-[#786A58]">
-                          None
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">{instructor.username ?? '—'}</td>
-                    <td className="px-6 py-4">{instructor.email}</td>
-                    <td className="px-6 py-4">{instructor.age ?? '—'}</td>
-                    <td className="px-6 py-4">{instructor.show_on_homepage ? 'Yes' : 'No'}</td>
-                    <td className="px-6 py-4">{new Date(instructor.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
+          <>
+            {/* Mobile: stacked cards, no horizontal scroll */}
+            <div className="divide-y divide-[#2B241E]/5 lg:hidden">
+              {instructors.map((instructor) => (
+                <div key={instructor.id} className="flex gap-4 p-4">
+                  {instructor.photo ? (
+                    <img src={instructor.photo} alt="" className="h-12 w-12 shrink-0 rounded-full object-cover" />
+                  ) : (
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#2B241E]/10 text-xs text-[#786A58]">
+                      None
+                    </span>
+                  )}
+                  <div className="min-w-0 flex-1 space-y-1 text-sm text-[#2B241E]">
+                    <div className="font-medium">{instructor.username ?? '—'}</div>
+                    <div className="break-all text-[#786A58]">{instructor.email}</div>
+                    <div className="text-xs text-[#786A58]">
+                      Age {instructor.age ?? '—'} · {instructor.show_on_homepage ? 'On homepage' : 'Not on homepage'}
+                    </div>
+                    <div className="text-xs text-[#786A58]">{new Date(instructor.created_at).toLocaleDateString()}</div>
+                    <div className="flex gap-4 pt-1">
                       <button
                         type="button"
                         onClick={() => setViewingInstructor(instructor)}
@@ -219,8 +207,6 @@ export const InstructorsPage = () => {
                         <Eye size={14} />
                         View
                       </button>
-                    </td>
-                    <td className="px-6 py-4">
                       <button
                         type="button"
                         onClick={() => openEditDialog(instructor)}
@@ -229,12 +215,70 @@ export const InstructorsPage = () => {
                         <Pencil size={14} />
                         Edit
                       </button>
-                    </td>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: full table */}
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-[#2B241E]/10 text-xs uppercase tracking-widest text-[#786A58]">
+                    <th className="px-6 py-4 font-medium">Photo</th>
+                    <th className="px-6 py-4 font-medium">Username</th>
+                    <th className="px-6 py-4 font-medium">Email</th>
+                    <th className="px-6 py-4 font-medium">Age</th>
+                    <th className="px-6 py-4 font-medium">Show on Homepage</th>
+                    <th className="px-6 py-4 font-medium">Created</th>
+                    <th className="px-6 py-4 font-medium">View</th>
+                    <th className="px-6 py-4 font-medium">Edit</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {instructors.map((instructor) => (
+                    <tr key={instructor.id} className="border-b border-[#2B241E]/5 text-[#2B241E] last:border-b-0">
+                      <td className="px-6 py-4">
+                        {instructor.photo ? (
+                          <img src={instructor.photo} alt="" className="h-12 w-12 rounded-full object-cover" />
+                        ) : (
+                          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2B241E]/10 text-xs text-[#786A58]">
+                            None
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4">{instructor.username ?? '—'}</td>
+                      <td className="px-6 py-4">{instructor.email}</td>
+                      <td className="px-6 py-4">{instructor.age ?? '—'}</td>
+                      <td className="px-6 py-4">{instructor.show_on_homepage ? 'Yes' : 'No'}</td>
+                      <td className="px-6 py-4">{new Date(instructor.created_at).toLocaleDateString()}</td>
+                      <td className="px-6 py-4">
+                        <button
+                          type="button"
+                          onClick={() => setViewingInstructor(instructor)}
+                          className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
+                        >
+                          <Eye size={14} />
+                          View
+                        </button>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          type="button"
+                          onClick={() => openEditDialog(instructor)}
+                          className="flex items-center gap-1 text-xs uppercase tracking-widest text-[#786A58] hover:text-[#2B241E]"
+                        >
+                          <Pencil size={14} />
+                          Edit
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </div>
 

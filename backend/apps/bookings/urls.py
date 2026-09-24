@@ -2,6 +2,8 @@ from django.urls import path
 
 from .views import (
     AdminBookingListView,
+    AdminInstructorAttendanceDetailView,
+    AdminInstructorAttendanceOverviewView,
     CreateBookingView,
     InstructorBookingListView,
     InstructorMarkAttendedView,
@@ -26,6 +28,8 @@ urlpatterns = [
     path('me/', MyBookingsView.as_view(), name='my-bookings'),
     path('me/history/', MyBookingHistoryView.as_view(), name='my-booking-history'),
     path('admin/', AdminBookingListView.as_view(), name='admin-list'),
+    path('admin/instructor-attendance/', AdminInstructorAttendanceOverviewView.as_view(), name='admin-instructor-attendance'),
+    path('admin/instructor-attendance/<int:pk>/', AdminInstructorAttendanceDetailView.as_view(), name='admin-instructor-attendance-detail'),
     path('instructor/me/', InstructorBookingListView.as_view(), name='instructor-bookings'),
     path('instructor/stats/', InstructorStatsView.as_view(), name='instructor-stats'),
     path('<int:pk>/instructor-attend/', InstructorMarkAttendedView.as_view(), name='instructor-mark-attended'),

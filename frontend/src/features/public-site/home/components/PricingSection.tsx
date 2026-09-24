@@ -46,8 +46,8 @@ export const PricingSection = () => {
         <div className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500">
           <div className="text-[#786A58] text-sm uppercase tracking-widest mb-4">Drop-In</div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-5xl font-serif text-[#2B241E]">{singleSlotPrice}</span>
-            <span className="text-[#786A58]">AED / class</span>
+            <span className="text-5xl font-serif text-[#2B241E]">₹{singleSlotPrice}</span>
+            <span className="text-[#786A58]">/ class</span>
           </div>
           <p className="text-sm text-[#786A58] mb-8 h-12">Try a live or online class with no commitment.</p>
           <div className="space-y-4 mb-10">
@@ -62,8 +62,8 @@ export const PricingSection = () => {
           <div className="absolute top-0 right-0 bg-[#D8B46A] text-[#2B241E] text-[10px] font-bold uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
           <div className="text-[#D8B46A] text-sm uppercase tracking-widest mb-4">Monthly Plan</div>
           <div className="flex items-baseline gap-2 mb-4">
-            <span className="text-5xl font-serif text-[#F5EFE5]">{monthlyPrice}</span>
-            <span className="text-[#F5EFE5]/60">AED / month</span>
+            <span className="text-5xl font-serif text-[#F5EFE5]">₹{monthlyPrice}</span>
+            <span className="text-[#F5EFE5]/60">/ month</span>
           </div>
           <p className="text-sm text-[#F5EFE5]/70 mb-8 h-12">Unlimited group classes, live or online, all month long.</p>
           <div className="space-y-4 mb-10">

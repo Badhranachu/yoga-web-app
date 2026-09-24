@@ -131,6 +131,41 @@ class AdminCreateAdminSerializer(serializers.ModelSerializer):
         return user
 
 
+class UpdateAdminSerializer(serializers.ModelSerializer):
+    """Admin-only: edits another admin's own name/phone and, optionally,
+    password. Email is intentionally left out — same reasoning as
+    UserSerializer, email changes go through the OTP-verified flow only."""
+
+    password = serializers.CharField(write_only=True, required=False, allow_blank=True, style={'input_type': 'password'})
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'phone_number', 'password']
+        extra_kwargs = {
+            'first_name': {'required': False},
+            'last_name': {'required': False},
+            'phone_number': {'required': False},
+        }
+
+    def validate_password(self, value):
+        if not value:
+            return value
+        try:
+            password_validation.validate_password(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(list(exc.messages))
+        return value
+
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
+
+
 class RequestRegistrationOTPSerializer(serializers.Serializer):
     email = serializers.EmailField()
 

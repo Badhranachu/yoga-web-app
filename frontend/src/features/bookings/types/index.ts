@@ -49,6 +49,22 @@ export type InstructorStats = {
   upcoming_count: number;
 };
 
+export type InstructorAttendanceOverview = {
+  id: number;
+  username: string | null;
+  email: string;
+  photo: string | null;
+  upcoming_count: number;
+  attended_count: number;
+  not_attended_count: number;
+};
+
+export type InstructorAttendanceDetail = {
+  upcoming: InstructorBooking[];
+  attended: InstructorBooking[];
+  not_attended: InstructorBooking[];
+};
+
 export type BookingChangeRequestType = 'transfer' | 'reschedule';
 export type BookingChangeRequestStatus = 'pending' | 'approved' | 'rejected';
 

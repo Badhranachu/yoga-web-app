@@ -58,9 +58,22 @@ def _trend(queryset, date_field, start, end, value_field=None):
 
 def build_admin_overview():
     today = timezone.localdate()
+    now_time = timezone.localtime().time()
     month_start = today.replace(day=1)
     trend_start = today - timedelta(days=6)
     successful = PaymentTransaction.objects.filter(status=PaymentTransaction.Status.SUCCESSFUL)
+
+    # Booking.Status only has BOOKED/ATTENDED — "not attended" isn't a
+    # stored state, it's a still-BOOKED row whose slot has already ended
+    # (same effective-status rule the frontend applies via
+    # getEffectiveStatus / bookingStatus.ts, kept in sync here).
+    booked_qs = Booking.objects.filter(status=Booking.Status.BOOKED)
+    upcoming_bookings_qs = booked_qs.filter(
+        Q(slot__date__gt=today) | Q(slot__date=today, slot__end_time__gt=now_time)
+    )
+    not_attended_bookings_qs = booked_qs.filter(
+        Q(slot__date__lt=today) | Q(slot__date=today, slot__end_time__lte=now_time)
+    )
 
     metrics = {
         'todays_bookings': Booking.objects.filter(slot__date=today, status=Booking.Status.BOOKED).count(),
@@ -78,6 +91,9 @@ def build_admin_overview():
             | Q(status=UserSubscription.Status.ACTIVE, end_date__lt=today)
         ).count(),
         'booked_slots': Slot.objects.filter(date__gte=today, bookings__isnull=False).distinct().count(),
+        'upcoming_bookings': upcoming_bookings_qs.count(),
+        'attended_bookings': Booking.objects.filter(status=Booking.Status.ATTENDED).count(),
+        'not_attended_bookings': not_attended_bookings_qs.count(),
         'available_slots': sum(
             1
             for slot in Slot.objects.filter(date__gte=today, leave__isnull=True)

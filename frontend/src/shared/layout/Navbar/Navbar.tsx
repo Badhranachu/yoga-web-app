@@ -44,23 +44,17 @@ export const Navbar = () => {
       transition={{ duration: 1, ease: easeOutQuart }}
       className={`fixed top-0 w-full z-50 transition-all duration-700 ${scrolled ? 'glass-nav py-4' : 'py-6'}`}
     >
-      {!scrolled && (
-        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-black/45 via-black/15 to-transparent pointer-events-none" />
-      )}
       <div className="container mx-auto px-6 md:px-12 flex justify-between items-center">
-        <Link
-          to="/"
-          className={`text-2xl font-serif tracking-wide transition-colors duration-700 ${scrolled ? 'text-[#2B241E]' : 'text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.45)]'}`}
-        >
+        <Link to="/" className="text-2xl font-serif tracking-wide text-[#2B241E]">
           Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
         </Link>
 
-        <div className={`hidden md:flex items-center gap-10 text-sm tracking-widest uppercase transition-colors duration-700 ${scrolled ? 'text-[#786A58]' : 'text-white/90'}`}>
+        <div className="hidden md:flex items-center gap-10 text-sm tracking-widest uppercase text-[#786A58]">
           {navItems.map((item) => (
             <a
               key={item}
               href={`#${item.toLowerCase()}`}
-              className={`hover:text-[#D8B46A] transition-colors relative group ${!scrolled ? 'drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]' : ''}`}
+              className="hover:text-[#D8B46A] transition-colors relative group"
             >
               {item}
               <span className="absolute -bottom-2 left-1/2 w-0 h-[1px] bg-[#D8B46A] group-hover:w-full group-hover:left-0 transition-all duration-500" />
@@ -72,14 +66,14 @@ export const Navbar = () => {
           <Button
             type="button"
             onClick={handleBookSession}
-            variant={scrolled ? 'primary' : 'outline'}
-            className={`!py-3 ${!scrolled ? '!border-white/60 !text-white hover:!border-[#D8B46A] hover:!text-[#D8B46A]' : ''}`}
+            variant="primary"
+            className="!py-3"
           >
             Book Session
           </Button>
         </div>
 
-        <button className={`md:hidden transition-colors duration-700 ${scrolled ? 'text-[#2B241E]' : 'text-white'}`} onClick={() => setMenuOpen(!menuOpen)}>
+        <button className="md:hidden text-[#2B241E]" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X size={28} strokeWidth={1} /> : <Menu size={28} strokeWidth={1} />}
         </button>
       </div>

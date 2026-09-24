@@ -71,7 +71,7 @@ export const DateInput = ({ value, onChange, min, markDate }: DateInputProps) =>
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 top-full z-50 mt-2 w-72 rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] p-3 shadow-xl">
+        <div className="absolute left-0 top-full z-50 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] p-3 shadow-xl">
           <div className="mb-2 flex items-center justify-between px-1">
             <button
               type="button"
