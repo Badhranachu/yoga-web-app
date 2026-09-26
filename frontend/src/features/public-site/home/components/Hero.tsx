@@ -1,16 +1,33 @@
 import { motion, useScroll, useTransform } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { luxuryTransition } from '@/shared/lib/motion';
-import { BreathingIndicator } from './BreathingIndicator';
+import { Button } from '@/shared/ui/Button';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export const Hero = () => {
   const { scrollY } = useScroll();
   const y1 = useTransform(scrollY, [0, 1000], [0, 200]);
-  const opacity = useTransform(scrollY, [0, 500], [1, 0]);
+  const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
+
+  // Same destination logic as the navbar's "Book Session" button — signed-
+  // out visitors go to register first (this CTA is explicitly about a
+  // first-time visitor claiming a free session), members go straight to
+  // booking, admins/instructors to their own dashboard home.
+  const handleBookFirstSession = () => {
+    if (!isAuthenticated) {
+      navigate('/register');
+      return;
+    }
+    if (user?.role === 'admin') navigate('/dashboard');
+    else if (user?.role === 'instructor') navigate('/instructor');
+    else navigate('/account/book');
+  };
 
   return (
     <section className="relative min-h-screen flex items-start justify-center overflow-hidden pt-32 pb-16 md:pt-36">
       <motion.div style={{ y: y1, willChange: 'transform' }} className="absolute inset-0 z-0">
-        <div className="absolute inset-0 bg-gradient-to-b from-[#F5EFE5]/70 via-[#F5EFE5]/60 to-[#F5EFE5] z-10" />
+        <div className="absolute inset-0 bg-[#F5EFE5]/50 z-10" />
         <img
           src="/assets/hero.jpg"
           alt="Silhouette of a yogi in scorpion pose at sunset"
@@ -22,7 +39,7 @@ export const Hero = () => {
         />
       </motion.div>
 
-      <motion.div style={{ opacity }} className="container relative z-20 mx-auto px-6 flex flex-col items-center text-center">
+      <div className="container relative z-20 mx-auto px-6 flex flex-col items-center text-center">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -49,7 +66,7 @@ export const Hero = () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ ...luxuryTransition, delay: 0.6 }}
-          className="text-lg md:text-xl text-[#786A58] max-w-2xl font-light mb-12"
+          className="text-lg md:text-xl text-black max-w-2xl font-light mb-12"
         >
           Live studio sessions, bespoke one-on-one journeys, and corporate wellness programs across the UAE. Taught with intention.
         </motion.p>
@@ -60,12 +77,11 @@ export const Hero = () => {
           transition={{ ...luxuryTransition, delay: 0.8 }}
           className="flex flex-col sm:flex-row gap-6"
         >
-          {/* <Button>Book your first class</Button>
-          <Button variant="glass">Explore Programs</Button> */}
+          <Button type="button" onClick={handleBookFirstSession}>
+            Book Your First Session for Free
+          </Button>
         </motion.div>
-
-        <BreathingIndicator />
-      </motion.div>
+      </div>
     </section>
   );
 };

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { Check, X } from 'lucide-react';
 import { RevealSection } from '@/shared/ui/RevealSection';
 import { Button } from '@/shared/ui/Button';
@@ -43,7 +44,13 @@ export const PricingSection = () => {
       </div>
 
       <div className="grid md:grid-cols-3 gap-8 items-center max-w-6xl mx-auto">
-        <div className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500">
+        <motion.div
+          initial={{ opacity: 0, x: -40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+          className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500"
+        >
           <div className="text-[#786A58] text-sm uppercase tracking-widest mb-4">Drop-In</div>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-5xl font-serif text-[#2B241E]">₹{singleSlotPrice}</span>
@@ -56,9 +63,15 @@ export const PricingSection = () => {
             <div className="flex items-center gap-3 text-sm text-[#2B241E] opacity-40"><X size={16} /> Priority booking</div>
           </div>
           <Button variant="outline" className="w-full">Book Single Class</Button>
-        </div>
+        </motion.div>
 
-        <div className="bg-[#2B241E] rounded-3xl p-10 border border-[#D8B46A]/30 shadow-2xl transform md:-translate-y-4 relative overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.15 }}
+          className="bg-[#2B241E] rounded-3xl p-10 border border-[#D8B46A]/30 shadow-2xl transform md:-translate-y-4 relative overflow-hidden"
+        >
           <div className="absolute top-0 right-0 bg-[#D8B46A] text-[#2B241E] text-[10px] font-bold uppercase tracking-widest py-1 px-4 rounded-bl-xl">Most Popular</div>
           <div className="text-[#D8B46A] text-sm uppercase tracking-widest mb-4">Monthly Plan</div>
           <div className="flex items-baseline gap-2 mb-4">
@@ -72,9 +85,15 @@ export const PricingSection = () => {
             <div className="flex items-center gap-3 text-sm text-[#F5EFE5]"><Check size={16} className="text-[#D8B46A]" /> 1 free 1:1 check-in monthly</div>
           </div>
           <Button variant="primary" className="w-full">Start Membership</Button>
-        </div>
+        </motion.div>
 
-        <div className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500">
+        <motion.div
+          initial={{ opacity: 0, x: 40 }}
+          whileInView={{ opacity: 1, x: 0 }}
+          viewport={{ once: true, margin: '-10%' }}
+          transition={{ duration: 0.7, ease: 'easeOut', delay: 0.3 }}
+          className="bg-white/40 rounded-3xl p-10 border border-white/50 shadow-lg hover:-translate-y-2 transition-transform duration-500"
+        >
           <div className="text-[#786A58] text-sm uppercase tracking-widest mb-4">Multi-Month Journey</div>
           <div className="flex items-baseline gap-2 mb-4">
             <span className="text-5xl font-serif text-[#2B241E]">Custom</span>
@@ -88,7 +107,7 @@ export const PricingSection = () => {
           <a href={CUSTOM_PLAN_WHATSAPP_HREF} target="_blank" rel="noreferrer">
             <Button variant="outline" className="w-full">Inquire Now</Button>
           </a>
-        </div>
+        </motion.div>
       </div>
     </div>
   </RevealSection>

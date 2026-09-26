@@ -302,7 +302,7 @@ export const MembersPage = () => {
           </button>
 
           {menuOpen && (
-            <div className="absolute left-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] shadow-xl">
+            <div className="absolute right-0 z-20 mt-2 w-48 max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-[#2B241E]/10 bg-[#F5EFE5] shadow-xl">
               <button
                 type="button"
                 onClick={() => {

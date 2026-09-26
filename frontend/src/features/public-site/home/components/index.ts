@@ -4,4 +4,3 @@ export { GallerySection } from './GallerySection';
 export { TrainersSection } from './TrainersSection';
 export { CorporateSection } from './CorporateSection';
 export { PricingSection } from './PricingSection';
-export { BreathingIndicator } from './BreathingIndicator';

@@ -5,6 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/shared/ui/Button';
 import { easeOutQuart } from '@/shared/lib/motion';
 import { useAuth } from '@/features/auth/hooks/useAuth';
+import { useBodyScrollLock } from '@/shared/lib/useBodyScrollLock';
 
 const navItems = ['Philosophy', 'Spaces', 'Journeys', 'Trainers'];
 
@@ -15,6 +16,8 @@ export const Navbar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
+
+  useBodyScrollLock(menuOpen);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -84,7 +87,7 @@ export const Navbar = () => {
             initial={{ opacity: 0, backdropFilter: 'blur(0px)' }}
             animate={{ opacity: 1, backdropFilter: 'blur(20px)' }}
             exit={{ opacity: 0, backdropFilter: 'blur(0px)' }}
-            className="fixed inset-0 top-[72px] bg-[#F5EFE5]/95 z-40 flex flex-col p-8"
+            className="fixed inset-0 top-[72px] bg-[#F5EFE5]/95 z-40 flex flex-col overflow-y-auto p-8"
           >
             <div className="flex flex-col gap-8 text-2xl font-serif mt-12">
               {[...navItems, 'Contact'].map((item) => (

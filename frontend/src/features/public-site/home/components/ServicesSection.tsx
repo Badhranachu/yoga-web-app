@@ -20,7 +20,15 @@ export const ServicesSection = () => (
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {services.map((service, idx) => (
-          <motion.div key={idx} whileHover={{ y: -10 }} className="group cursor-pointer">
+          <motion.div
+            key={idx}
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: '-10%' }}
+            transition={{ duration: 0.7, ease: 'easeOut', delay: idx * 0.1 }}
+            whileHover={{ y: -10 }}
+            className="group cursor-pointer"
+          >
             <div className="relative h-[400px] rounded-2xl overflow-hidden mb-6">
               <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-all duration-700 z-10" />
               <img

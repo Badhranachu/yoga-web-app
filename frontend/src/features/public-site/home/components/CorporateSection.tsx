@@ -38,7 +38,14 @@ export const CorporateSection = () => (
 
           <div className="space-y-8 relative before:absolute before:inset-0 before:ml-[11px] before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-[#D8B46A]/50 before:to-transparent">
             {corporateOfferings.map((item, idx) => (
-              <div key={idx} className="relative flex items-start gap-6">
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true, margin: '-10%' }}
+                transition={{ duration: 0.6, ease: 'easeOut', delay: idx * 0.1 }}
+                className="relative flex items-start gap-6"
+              >
                 <div className="relative z-10 w-6 h-6 rounded-full bg-[#2B241E] border border-[#D8B46A] flex items-center justify-center shrink-0 mt-1">
                   <div className="w-2 h-2 rounded-full bg-[#D8B46A]" />
                 </div>
@@ -49,7 +56,7 @@ export const CorporateSection = () => (
                   </div>
                   <p className="text-[#F5EFE5]/50 text-sm">{item.desc}</p>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
