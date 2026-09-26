@@ -1,7 +1,7 @@
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
+
+from apps.core.email import send_otp_email
 
 from .models import EmailChangeRequest, PasswordResetToken, RegistrationOTP, User
 
@@ -40,17 +40,13 @@ def issue_password_reset_otp(email: str) -> PasswordResetToken:
     reset_token = PasswordResetToken.objects.create(user=user)
 
     try:
-        send_mail(
+        send_otp_email(
             subject='Your Harmony Fusion Studio password reset code',
-            message=(
-                f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
-                f'Use the code below to reset your password. It expires in 5 minutes.\n\n'
-                f'{reset_token.otp_code}\n\n'
-                "If you didn't request this, you can safely ignore this email."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[user.email],
-            fail_silently=False,
+            heading='Reset your password',
+            intro='Use the code below to reset your password. It expires in 5 minutes.',
+            otp_code=reset_token.otp_code,
+            recipient=user.email,
+            first_name=user.first_name,
         )
     except Exception as exc:
         raise PasswordResetError('Could not send the verification email. Please try again later.') from exc
@@ -127,18 +123,13 @@ def request_email_change(user, new_email: str) -> EmailChangeRequest:
     change_request = EmailChangeRequest.objects.create(user=user, new_email=new_email)
 
     try:
-        send_mail(
+        send_otp_email(
             subject='Confirm your new Harmony Fusion Studio email',
-            message=(
-                f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
-                f'Use the code below to confirm {new_email} as your new email address. '
-                f'It expires in 5 minutes.\n\n'
-                f'{change_request.otp_code}\n\n'
-                "If you didn't request this, you can safely ignore this email."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[new_email],
-            fail_silently=False,
+            heading='Confirm your new email',
+            intro=f'Use the code below to confirm {new_email} as your new email address. It expires in 5 minutes.',
+            otp_code=change_request.otp_code,
+            recipient=new_email,
+            first_name=user.first_name,
         )
     except Exception as exc:
         raise EmailChangeError('Could not send the verification email. Please try again later.') from exc
@@ -194,17 +185,12 @@ def request_registration_otp(email: str) -> RegistrationOTP:
     otp = RegistrationOTP.objects.create(email=email)
 
     try:
-        send_mail(
+        send_otp_email(
             subject='Verify your email for Harmony Fusion Studio',
-            message=(
-                'Use the code below to verify this email address before continuing. '
-                'It expires in 5 minutes.\n\n'
-                f'{otp.otp_code}\n\n'
-                "If you didn't request this, you can safely ignore this email."
-            ),
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[email],
-            fail_silently=False,
+            heading='Verify your email',
+            intro='Use the code below to verify this email address before continuing. It expires in 5 minutes.',
+            otp_code=otp.otp_code,
+            recipient=email,
         )
     except Exception as exc:
         raise RegistrationOTPError('Could not send the verification email. Please try again later.') from exc

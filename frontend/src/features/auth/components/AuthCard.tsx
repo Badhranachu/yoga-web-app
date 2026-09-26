@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { motion } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { luxuryTransition } from '@/shared/lib/motion';
 
@@ -21,6 +22,14 @@ export const AuthCard = ({ title, subtitle, children, footer }: AuthCardProps) =
       transition={luxuryTransition}
       className="w-full max-w-md"
     >
+      <Link
+        to="/"
+        className="mb-6 flex items-center gap-2 text-sm text-[#786A58] transition-colors hover:text-[#D8B46A]"
+      >
+        <ArrowLeft size={16} strokeWidth={1.5} />
+        Back to Home
+      </Link>
+
       <Link to="/" className="flex justify-center mb-10 text-2xl font-serif tracking-wide text-[#2B241E]">
         Harmony <span className="text-[#D8B46A] italic">Fusion Studio</span>
       </Link>

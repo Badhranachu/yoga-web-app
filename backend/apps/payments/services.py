@@ -20,10 +20,10 @@ from decimal import Decimal
 
 import razorpay
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.utils import timezone
 
+from apps.core.email import send_notice_email
 from apps.core.models import StudioSetting
 from apps.core.settings_keys import SINGLE_SLOT_PRICE, SINGLE_SLOT_PRICE_DEFAULT
 from apps.notifications.models import Notification
@@ -517,19 +517,20 @@ def send_low_usage_reminders() -> dict:
 
         user = subscription.user
         try:
-            send_mail(
+            send_notice_email(
                 subject='Your Harmony Fusion Studio sessions are about to expire',
-                message=(
-                    f'Hello{" " + user.first_name if user.first_name else ""},\n\n'
+                heading='Your sessions are about to expire',
+                paragraphs=[
                     f"Your subscription cycle ends in {LOW_USAGE_REMINDER_DAYS_BEFORE_END} days "
                     f'({subscription.end_date.strftime("%d %b %Y")}), and you have used only {used} of '
-                    f'{subscription.sessions_included} sessions so far.\n\n'
-                    f'Unused sessions do not carry over — book a class soon to make the most of your membership.\n\n'
-                    "See you on the mat!"
-                ),
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=False,
+                    f'{subscription.sessions_included} sessions so far.',
+                    'Unused sessions do not carry over — book a class soon to make the most of your membership.',
+                    'See you on the mat!',
+                ],
+                recipient=user.email,
+                first_name=user.first_name,
+                cta_url=f'{settings.FRONTEND_URL}/account/book',
+                cta_label='Book a Class',
             )
         except Exception:
             continue

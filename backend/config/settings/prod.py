@@ -4,7 +4,7 @@ from django.core.exceptions import ImproperlyConfigured
 from .base import *  # noqa: F401,F403
 
 DEBUG = False
-PAYMENT_PROCESSING_ENABLED = False
+PAYMENT_PROCESSING_ENABLED = config('PAYMENT_PROCESSING_ENABLED', default=True, cast=bool)
 
 if len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-'):
     raise ImproperlyConfigured('DJANGO_SECRET_KEY must be a long, unique production secret.')

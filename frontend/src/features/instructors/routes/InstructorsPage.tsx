@@ -8,9 +8,8 @@ import { instructorsApi } from '../api/instructorsApi';
 import type { InstructorProfile } from '../types';
 
 const initialForm = {
-  username: '',
+  full_name: '',
   email: '',
-  first_name: '',
   phone_number: '',
   age: '',
   password: '',
@@ -82,9 +81,9 @@ export const InstructorsPage = () => {
 
     try {
       const created = await instructorsApi.create({
-        username: form.username,
+        username: form.full_name,
         email: form.email,
-        first_name: form.first_name,
+        first_name: form.full_name,
         phone_number: form.phone_number,
         age: form.age ? Number(form.age) : null,
         password: form.password,
@@ -308,17 +307,10 @@ export const InstructorsPage = () => {
                     required
                   />
                   <TextField
-                    label="Username"
-                    name="username"
-                    value={form.username}
-                    onChange={(event) => handleChange('username', event.target.value)}
-                    required
-                  />
-                  <TextField
-                    label="Name"
-                    name="first_name"
-                    value={form.first_name}
-                    onChange={(event) => handleChange('first_name', event.target.value)}
+                    label="Full Name"
+                    name="full_name"
+                    value={form.full_name}
+                    onChange={(event) => handleChange('full_name', event.target.value)}
                     required
                   />
                   <div>

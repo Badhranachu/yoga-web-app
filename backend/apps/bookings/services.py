@@ -27,12 +27,12 @@ attendance is purely a record of whether the member showed up.
 """
 
 from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction
 from django.db.models import Count, Q
 from django.utils import timezone
 
 from apps.classes_app.models import Slot
+from apps.core.email import send_notice_email
 from apps.instructors.models import InstructorProfile
 from apps.notifications.models import Notification
 from apps.notifications.services import NotificationService
@@ -152,10 +152,7 @@ def _notify_change_request(change_request: BookingChangeRequest) -> None:
     reschedules are instant now, no approval to notify anyone about).
     """
     booking = change_request.booking
-    recipients = [booking.user.email]
     subject = 'Action required: your Harmony Fusion Studio booking transfer'
-    greeting = booking.user.first_name or 'there'
-    action = 'Please accept or reject this transfer request from your account.'
 
     NotificationService.create(
         booking.user,
@@ -169,20 +166,22 @@ def _notify_change_request(change_request: BookingChangeRequest) -> None:
         dedupe_key=f'transfer-request:{change_request.pk}',
     )
 
-    send_mail(
+    send_notice_email(
         subject=subject,
-        message=(
-            f'Hello {greeting},\n\n'
+        heading='Booking transfer request',
+        paragraphs=[
             f'Current slot: {change_request.current_date} '
             f'{change_request.current_start_time.strftime("%H:%M")}–'
-            f'{change_request.current_end_time.strftime("%H:%M")}\n'
+            f'{change_request.current_end_time.strftime("%H:%M")}',
             f'Requested slot: {change_request.requested_date} '
             f'{change_request.requested_start_time.strftime("%H:%M")}–'
-            f'{change_request.requested_end_time.strftime("%H:%M")}\n\n'
-            f'{action}'
-        ),
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        recipient_list=recipients,
+            f'{change_request.requested_end_time.strftime("%H:%M")}',
+            'Please accept or reject this transfer request from your account.',
+        ],
+        recipient=booking.user.email,
+        first_name=booking.user.first_name,
+        cta_url=f'{settings.FRONTEND_URL}/account',
+        cta_label='Review Request',
         fail_silently=True,
     )
 
